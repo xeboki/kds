@@ -129,17 +129,7 @@ The session (JWT + Firebase config) is persisted locally. On the next cold start
 
 ## Subscription Gate
 
-The KDS validates your subscription at login and on every app restart.
-
-**Client-side:** After login, the session's `subscription_plan` and `subscription_status` are checked. If the plan is free or the subscription is inactive, the app redirects to a locked gate screen. Staff cannot access the live board.
-
-**Server-side:** The JWT issued at login contains `sub_plan`, `sub_status`, and `sub_iat` (the Unix timestamp of the last subscription change). On protected API endpoints the server re-checks Firebase if `subscription_updated_at` has advanced past `sub_iat` — plan changes take effect on the next API call with no 24-hour delay.
-
-| Status | Screen shown |
-|--------|-------------|
-| Free plan | "Paid Subscription Required" — upgrade instructions |
-| Inactive / cancelled subscription | "Paid Subscription Required" — upgrade instructions |
-| Active or trialing | Live KDS board |
+Subscription is validated at login and enforced server-side. Free-plan and inactive accounts are shown a blocking screen — staff cannot access the live board. Plan changes take effect immediately.
 
 To upgrade: sign in to the **Xeboki Manager app** or visit [xeboki.com/xe-pos](https://xeboki.com/xe-pos). After upgrading, sign out of the KDS and sign back in to activate.
 
