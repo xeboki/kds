@@ -4,6 +4,7 @@ import '../../../core/models/firebase_config.dart';
 import '../../../core/services/api_client.dart';
 import '../../../core/services/firebase_init_service.dart';
 import '../domain/models/kds_session.dart';
+import '../../kds/domain/models/screen_role.dart';
 
 const _kSessionKey = 'kds_session_v1';
 
@@ -81,6 +82,8 @@ class AuthRepository {
         'staff_name': s.staffName,
         'staff_id': s.staffId,
         'station_id': s.stationId,
+        // Persisted, or a restart quietly demotes an expo screen to prep.
+        'screen_role': s.role.wire,
         'subscription_plan': s.subscriptionPlan,
         'subscription_status': s.subscriptionStatus,
       };
@@ -96,6 +99,7 @@ class AuthRepository {
       staffName: m['staff_name'] as String,
       staffId: m['staff_id'] as String,
       stationId: m['station_id'] as String?,
+      role: KdsScreenRole.fromWire(m['screen_role'] as String?),
       subscriptionPlan: m['subscription_plan'] as String? ?? '',
       subscriptionStatus: m['subscription_status'] as String? ?? '',
     );

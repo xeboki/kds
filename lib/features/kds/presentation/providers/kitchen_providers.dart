@@ -22,7 +22,10 @@ final kitchenOrdersProvider = StreamProvider<List<KitchenOrder>>((ref) {
   final repo = ref.watch(kitchenRepositoryProvider);
   return repo.watchOrders(
     locationId: session.locationId,
-    stationId: session.stationId?.isNotEmpty == true ? session.stationId : null,
+    // `boardStationId`, not the raw pin: an expo screen keeps its station —
+    // the pass is a real place food is routed to — but must not filter its
+    // board by it, or it sees only what the pass itself makes.
+    stationId: session.boardStationId,
   );
 });
 

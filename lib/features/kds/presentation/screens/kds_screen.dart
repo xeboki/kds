@@ -97,10 +97,10 @@ class _KitchenDisplayScreenState
                   return _GridView(
                       orders: orders,
                       colCount: colCount,
-                      stationId: session?.stationId);
+                      stationId: session?.boardStationId);
                 case KdsViewMode.tableView:
                   return _TableConsolidatedView(
-                      orders: orders, stationId: session?.stationId);
+                      orders: orders, stationId: session?.boardStationId);
                 case KdsViewMode.expoView:
                   // No station: the expediter assembles the whole order and
                   // has to see every line, whichever station is making it.
