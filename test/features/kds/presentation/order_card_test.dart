@@ -7,7 +7,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:xeboki_kds/core/theme/app_theme.dart';
+import 'package:xeboki_kds/core/theme/app_colors.dart';
+import 'package:xeboki_kds/core/theme/kds_theme.dart';
 import 'package:xeboki_kds/features/kds/domain/models/kitchen_order.dart';
 import 'package:xeboki_kds/features/kds/domain/repositories/kitchen_repository.dart';
 import 'package:xeboki_kds/features/kds/presentation/providers/kitchen_providers.dart';
@@ -53,6 +54,11 @@ Color _cardBorderColor(WidgetTester tester) {
 Future<void> _disposeTimer(WidgetTester tester) async =>
     tester.pumpWidget(const SizedBox());
 
+/// The same ramp the widgets read, at the brightness these tests
+/// pump. Asserting a literal colour here would re-introduce the
+/// second palette this app was just rid of.
+const _kitchen = KitchenPalette(AppColors.light);
+
 void main() {
   testWidgets('renders inside ProviderScope with a fake repo (no provider error)', (tester) async {
     await _pumpCard(tester, KitchenOrderStatus.pending);
@@ -63,22 +69,22 @@ void main() {
   group('OrderCard status → border color', () {
     testWidgets('pending', (tester) async {
       await _pumpCard(tester, KitchenOrderStatus.pending);
-      expect(_cardBorderColor(tester), KdsTheme.statusPending.withValues(alpha: 0.5));
+      expect(_cardBorderColor(tester), _kitchen.statusPending.withValues(alpha: 0.5));
       await _disposeTimer(tester);
     });
     testWidgets('preparing', (tester) async {
       await _pumpCard(tester, KitchenOrderStatus.preparing);
-      expect(_cardBorderColor(tester), KdsTheme.statusPreparing.withValues(alpha: 0.5));
+      expect(_cardBorderColor(tester), _kitchen.statusPreparing.withValues(alpha: 0.5));
       await _disposeTimer(tester);
     });
     testWidgets('ready', (tester) async {
       await _pumpCard(tester, KitchenOrderStatus.ready);
-      expect(_cardBorderColor(tester), KdsTheme.statusReady.withValues(alpha: 0.5));
+      expect(_cardBorderColor(tester), _kitchen.statusReady.withValues(alpha: 0.5));
       await _disposeTimer(tester);
     });
     testWidgets('recalled → red', (tester) async {
       await _pumpCard(tester, KitchenOrderStatus.recalled);
-      expect(_cardBorderColor(tester), KdsTheme.ageRed.withValues(alpha: 0.5));
+      expect(_cardBorderColor(tester), _kitchen.ageRed.withValues(alpha: 0.5));
       await _disposeTimer(tester);
     });
     testWidgets('other status (served) → transparent', (tester) async {

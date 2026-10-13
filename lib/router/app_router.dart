@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../core/theme/kds_theme.dart';
 import '../features/auth/presentation/providers/auth_providers.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/subscription_gate_screen.dart';
@@ -48,10 +50,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const KitchenDisplayScreen(),
       ),
     ],
-    errorBuilder: (_, state) => Scaffold(
+    errorBuilder: (context, state) => Scaffold(
       body: Center(
         child: Text('Route not found: ${state.error}',
-            style: const TextStyle(color: Colors.white)),
+            style: TextStyle(color: context.appColors.textPrimary)),
       ),
     ),
   );

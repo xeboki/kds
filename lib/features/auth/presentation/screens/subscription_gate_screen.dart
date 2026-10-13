@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/kds_theme.dart';
 import '../providers/auth_providers.dart';
 
 /// Shown when the authenticated session has a free plan or inactive subscription.
@@ -11,24 +11,26 @@ class SubscriptionGateScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final kitchen = context.kitchen;
+    final colors = context.appColors;
     final session = ref.watch(sessionProvider);
     final planLabel = session?.subscriptionPlan.isNotEmpty == true
         ? session!.subscriptionPlan
         : 'Free Plan';
 
     return Scaffold(
-      backgroundColor: KdsTheme.surface,
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: KdsTheme.surface,
+        backgroundColor: colors.background,
         actions: [
           TextButton.icon(
             onPressed: () async {
               await ref.read(sessionProvider.notifier).logout();
               if (context.mounted) context.go('/login');
             },
-            icon: const Icon(Icons.logout, size: 16, color: Colors.white38),
-            label: const Text('Sign out',
-                style: TextStyle(color: Colors.white38, fontSize: 13)),
+            icon: Icon(Icons.logout, size: 16, color: colors.onDisabled),
+            label: Text('Sign out',
+                style: TextStyle(color: colors.onDisabled, fontSize: 13)),
           ),
           const SizedBox(width: 8),
         ],
@@ -44,22 +46,22 @@ class SubscriptionGateScreen extends ConsumerWidget {
                 width: 88,
                 height: 88,
                 decoration: BoxDecoration(
-                  color: KdsTheme.ageRed.withValues(alpha: 0.12),
+                  color: kitchen.ageRed.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                   border: Border.all(
-                      color: KdsTheme.ageRed.withValues(alpha: 0.35), width: 1.5),
+                      color: kitchen.ageRed.withValues(alpha: 0.35), width: 1.5),
                 ),
-                child: const Icon(Icons.lock_outline_rounded,
-                    size: 40, color: KdsTheme.ageRed),
+                child: Icon(Icons.lock_outline_rounded,
+                    size: 40, color: kitchen.ageRed),
               ),
               const SizedBox(height: 24),
 
               // Headline
-              const Text(
+              Text(
                 'Paid Subscription Required',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: colors.textPrimary,
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
                 ),
@@ -72,7 +74,7 @@ class SubscriptionGateScreen extends ConsumerWidget {
                 'Free accounts cannot access kitchen display features.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55), fontSize: 14, height: 1.5),
+                    color: colors.textPrimary.withValues(alpha: 0.55), fontSize: 14, height: 1.5),
               ),
               const SizedBox(height: 20),
 
@@ -81,20 +83,20 @@ class SubscriptionGateScreen extends ConsumerWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  color: KdsTheme.surfaceLow,
+                  color: colors.surfaceContainer,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white12),
+                  border: Border.all(color: colors.border),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.info_outline,
-                        size: 14, color: Colors.white38),
+                    Icon(Icons.info_outline,
+                        size: 14, color: colors.onDisabled),
                     const SizedBox(width: 6),
                     Text(
                       'Current plan: $planLabel',
-                      style: const TextStyle(
-                          color: Colors.white54, fontSize: 13),
+                      style: TextStyle(
+                          color: colors.textSecondary, fontSize: 13),
                     ),
                   ],
                 ),
@@ -112,26 +114,26 @@ class SubscriptionGateScreen extends ConsumerWidget {
                     showDialog(
                       context: context,
                       builder: (ctx) => AlertDialog(
-                        backgroundColor: KdsTheme.surfaceCard,
+                        backgroundColor: colors.surface,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14)),
-                        title: const Text('Upgrade Your Plan',
+                        title: Text('Upgrade Your Plan',
                             style: TextStyle(
-                                color: Colors.white,
+                                color: colors.textPrimary,
                                 fontWeight: FontWeight.w700)),
-                        content: const Text(
+                        content: Text(
                           'To upgrade, sign in to the Xeboki Manager app or '
                           'visit xeboki.com/xe-pos on any browser.\n\n'
                           'Once your plan is upgraded, sign out and sign back in '
                           'to activate the KDS.',
                           style:
-                              TextStyle(color: Colors.white70, height: 1.5),
+                              TextStyle(color: colors.textSecondary, height: 1.5),
                         ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Got it',
-                                style: TextStyle(color: KdsTheme.primary)),
+                            child: Text('Got it',
+                                style: TextStyle(color: colors.primary)),
                           ),
                         ],
                       ),
@@ -142,8 +144,8 @@ class SubscriptionGateScreen extends ConsumerWidget {
                       style: TextStyle(
                           fontSize: 15, fontWeight: FontWeight.w600)),
                   style: FilledButton.styleFrom(
-                    backgroundColor: KdsTheme.primary,
-                    foregroundColor: Colors.white,
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                   ),

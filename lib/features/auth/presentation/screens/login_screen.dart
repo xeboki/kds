@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/kds_theme.dart';
 import '../providers/auth_providers.dart';
 
 /// KDS login screen — shown only on first launch or after logout.
@@ -47,8 +47,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final kitchen = context.kitchen;
+    final colors = context.appColors;
     return Scaffold(
-      backgroundColor: KdsTheme.surface,
+      backgroundColor: colors.background,
       body: Center(
         child: SizedBox(
           width: 400,
@@ -59,14 +61,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Logo / title
-                const Icon(Icons.restaurant_menu, size: 64, color: KdsTheme.primary),
+                Icon(Icons.restaurant_menu, size: 64, color: colors.primary),
                 const SizedBox(height: 16),
                 Text(
                   'Xeboki KDS',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: colors.textPrimary,
                       ),
                 ),
                 const SizedBox(height: 8),
@@ -76,7 +78,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium
-                      ?.copyWith(color: Colors.white54),
+                      ?.copyWith(color: colors.textSecondary),
                 ),
                 const SizedBox(height: 40),
 
@@ -84,8 +86,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _inputDec('Email', Icons.email_outlined),
+                  style: TextStyle(color: colors.textPrimary),
+                  decoration: _inputDec(context, 'Email', Icons.email_outlined),
                   validator: (v) =>
                       (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
                 ),
@@ -95,12 +97,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 TextFormField(
                   controller: _passCtrl,
                   obscureText: _obscure,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _inputDec('Password', Icons.lock_outline).copyWith(
+                  style: TextStyle(color: colors.textPrimary),
+                  decoration: _inputDec(context, 'Password', Icons.lock_outline).copyWith(
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscure ? Icons.visibility_off : Icons.visibility,
-                        color: Colors.white38,
+                        color: colors.onDisabled,
                       ),
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
@@ -115,13 +117,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: KdsTheme.ageRed.withValues(alpha: 0.15),
+                      color: kitchen.ageRed.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: KdsTheme.ageRed.withValues(alpha: 0.4)),
+                      border: Border.all(color: kitchen.ageRed.withValues(alpha: 0.4)),
                     ),
                     child: Text(
                       _error!,
-                      style: const TextStyle(color: KdsTheme.ageRed, fontSize: 13),
+                      style: TextStyle(color: kitchen.ageRed, fontSize: 13),
                     ),
                   ),
                 ],
@@ -134,17 +136,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: ElevatedButton(
                     onPressed: _loading ? null : _submit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: KdsTheme.primary,
-                      foregroundColor: Colors.white,
+                      backgroundColor: colors.primary,
+                      foregroundColor: colors.onPrimary,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),
                     child: _loading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 22,
                             height: 22,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
+                                strokeWidth: 2, color: colors.onPrimary),
                           )
                         : const Text('Sign In',
                             style: TextStyle(
@@ -159,23 +161,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  InputDecoration _inputDec(String label, IconData icon) => InputDecoration(
+  /// Takes a context because the field's colours are the till's now, and
+  /// those differ between light and dark. The `colors.textSecondary` /
+  /// `colors.onDisabled` that stood here were written for a screen that was
+  /// always dark; on the till's light ground they are invisible.
+  InputDecoration _inputDec(
+      BuildContext context, String label, IconData icon) {
+    final colors = context.appColors;
+    return InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white54),
-        prefixIcon: Icon(icon, color: Colors.white38),
+        labelStyle: TextStyle(color: colors.textSecondary),
+        prefixIcon: Icon(icon, color: colors.textSecondary),
         filled: true,
-        fillColor: KdsTheme.surfaceCard,
+        fillColor: colors.inputFill,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.white12),
+          borderSide: BorderSide(color: colors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: KdsTheme.primary),
+          borderSide: BorderSide(color: colors.primary),
         ),
       );
+  }
 }

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/kds_theme.dart';
 
 /// Live age timer badge. Colour cycles green → amber → red → deep-red
 /// based on the configurable thresholds (default 8 / 15 / 25 min).
@@ -48,11 +48,15 @@ class _TimerBadgeState extends State<TimerBadge> {
     super.dispose();
   }
 
-  Color get _color {
-    if (_minutes >= widget.criticalMins) return KdsTheme.ageUrgent;
-    if (_minutes >= widget.veryUrgentMins) return KdsTheme.ageRed;
-    if (_minutes >= widget.urgentMins) return KdsTheme.ageAmber;
-    return KdsTheme.ageOk;
+  /// Takes a context because the ramp is the till's, and the till's
+  /// semantic colours differ between light and dark so they stay legible on
+  /// either ground.
+  Color _colorOf(BuildContext context) {
+    final kitchen = context.kitchen;
+    if (_minutes >= widget.criticalMins) return kitchen.ageUrgent;
+    if (_minutes >= widget.veryUrgentMins) return kitchen.ageRed;
+    if (_minutes >= widget.urgentMins) return kitchen.ageAmber;
+    return kitchen.ageOk;
   }
 
   @override
@@ -62,19 +66,19 @@ class _TimerBadgeState extends State<TimerBadge> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: _color.withValues(alpha: 0.15),
+        color: _colorOf(context).withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: _color.withValues(alpha: 0.5)),
+        border: Border.all(color: _colorOf(context).withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.timer_outlined, size: 12, color: _color),
+          Icon(Icons.timer_outlined, size: 12, color: _colorOf(context)),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
-              color: _color,
+              color: _colorOf(context),
               fontSize: 12,
               fontWeight: FontWeight.w700,
               fontFeatures: const [FontFeature.tabularFigures()],

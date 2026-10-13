@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/kds_theme.dart';
 import '../../domain/models/kitchen_order.dart';
 import '../providers/kitchen_providers.dart';
 import 'item_tile.dart';
@@ -14,25 +14,27 @@ class OrderCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final kitchen = context.kitchen;
+    final colors = context.appColors;
     final repo = ref.read(kitchenRepositoryProvider);
 
     Color borderColor;
     switch (order.status) {
       case KitchenOrderStatus.pending:
-        borderColor = KdsTheme.statusPending;
+        borderColor = kitchen.statusPending;
       case KitchenOrderStatus.preparing:
-        borderColor = KdsTheme.statusPreparing;
+        borderColor = kitchen.statusPreparing;
       case KitchenOrderStatus.ready:
-        borderColor = KdsTheme.statusReady;
+        borderColor = kitchen.statusReady;
       case KitchenOrderStatus.recalled:
-        borderColor = KdsTheme.ageRed;
+        borderColor = kitchen.ageRed;
       default:
         borderColor = Colors.transparent;
     }
 
     return Container(
       decoration: BoxDecoration(
-        color: KdsTheme.surfaceCard,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor.withValues(alpha: 0.5), width: 1.5),
       ),
@@ -47,17 +49,17 @@ class OrderCard extends ConsumerWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              color: KdsTheme.ageRed.withValues(alpha: 0.15),
+              color: kitchen.ageRed.withValues(alpha: 0.15),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      size: 14, color: KdsTheme.ageRed),
+                  Icon(Icons.warning_amber_rounded,
+                      size: 14, color: kitchen.ageRed),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       order.allergyInfo!,
-                      style: const TextStyle(
-                          color: KdsTheme.ageRed,
+                      style: TextStyle(
+                          color: kitchen.ageRed,
                           fontSize: 12,
                           fontWeight: FontWeight.w600),
                     ),
@@ -92,10 +94,11 @@ class _CardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
       decoration: BoxDecoration(
-        color: KdsTheme.surfaceLow,
+        color: colors.surfaceContainer,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
       ),
       child: Row(
@@ -107,8 +110,8 @@ class _CardHeader extends StatelessWidget {
               children: [
                 Text(
                   '#${order.orderNumber}',
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: colors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w800),
                 ),
@@ -120,16 +123,16 @@ class _CardHeader extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         'T${order.tableNumber}',
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 12),
+                        style: TextStyle(
+                            color: colors.textSecondary, fontSize: 12),
                       ),
                     ],
                     if (order.sourceLabel != null) ...[
                       const SizedBox(width: 6),
                       Text(
                         order.sourceLabel!,
-                        style: const TextStyle(
-                            color: KdsTheme.primary, fontSize: 11),
+                        style: TextStyle(
+                            color: colors.primary, fontSize: 11),
                       ),
                     ],
                   ],
@@ -157,16 +160,17 @@ class _TypeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: KdsTheme.primary.withValues(alpha: 0.15),
+        color: colors.primary.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         type.label,
-        style: const TextStyle(
-            color: KdsTheme.primary, fontSize: 11, fontWeight: FontWeight.w600),
+        style: TextStyle(
+            color: colors.primary, fontSize: 11, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -179,14 +183,16 @@ class _PriorityIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final kitchen = context.kitchen;
     Color color;
     switch (order.priority) {
       case KitchenOrderPriority.high:
-        color = KdsTheme.priorityHigh;
+        color = kitchen.priorityHigh;
       case KitchenOrderPriority.urgent:
-        color = KdsTheme.priorityUrgent;
+        color = kitchen.priorityUrgent;
       default:
-        color = Colors.white24;
+        color = colors.onDisabled;
     }
     return GestureDetector(
       onTap: () {
@@ -211,6 +217,8 @@ class _ItemsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final kitchen = context.kitchen;
     final byCourse = order.byCourse;
     if (byCourse.length <= 1) {
       // No course grouping
@@ -242,8 +250,8 @@ class _ItemsBody extends StatelessWidget {
               children: [
                 Text(
                   _courseName(course),
-                  style: const TextStyle(
-                      color: Colors.white54,
+                  style: TextStyle(
+                      color: colors.textSecondary,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1),
@@ -256,15 +264,15 @@ class _ItemsBody extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: KdsTheme.statusPreparing.withValues(alpha: 0.2),
+                        color: kitchen.statusPreparing.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(
-                            color: KdsTheme.statusPreparing.withValues(alpha: 0.5)),
+                            color: kitchen.statusPreparing.withValues(alpha: 0.5)),
                       ),
-                      child: const Text(
+                      child: Text(
                         'FIRE',
                         style: TextStyle(
-                            color: KdsTheme.statusPreparing,
+                            color: kitchen.statusPreparing,
                             fontSize: 11,
                             fontWeight: FontWeight.w800),
                       ),
@@ -282,7 +290,7 @@ class _ItemsBody extends StatelessWidget {
                       ? null
                       : () => repo.markItemCompleted(order.id, item.id),
                 )),
-            const Divider(color: Colors.white12, height: 16),
+            Divider(color: colors.border, height: 16),
           ],
         );
       }).toList(),
@@ -312,6 +320,8 @@ class _CardFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final kitchen = context.kitchen;
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
       child: Column(
@@ -323,8 +333,8 @@ class _CardFooter extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 order.specialInstructions!,
-                style: const TextStyle(
-                    color: KdsTheme.ageAmber,
+                style: TextStyle(
+                    color: kitchen.ageAmber,
                     fontSize: 12,
                     fontStyle: FontStyle.italic),
               ),
@@ -341,9 +351,9 @@ class _CardFooter extends StatelessWidget {
                       TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: order.status == KitchenOrderStatus.ready
-                    ? KdsTheme.statusReady
-                    : KdsTheme.statusPreparing,
-                foregroundColor: Colors.white,
+                    ? kitchen.statusReady
+                    : kitchen.statusPreparing,
+                foregroundColor: colors.onPrimary,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8)),
               ),

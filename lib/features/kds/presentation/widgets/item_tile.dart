@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/kds_theme.dart';
 import '../../domain/models/kitchen_order.dart';
 
 /// Single order-item row inside an order card.
@@ -17,6 +17,8 @@ class ItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final kitchen = context.kitchen;
     final isDone = item.status == KitchenItemStatus.completed ||
         item.status == KitchenItemStatus.cancelled;
     final isHeld = item.status == KitchenItemStatus.held;
@@ -25,15 +27,15 @@ class ItemTile extends StatelessWidget {
     Color statusColor;
     switch (item.status) {
       case KitchenItemStatus.pending:
-        statusColor = KdsTheme.statusPending;
+        statusColor = kitchen.statusPending;
       case KitchenItemStatus.preparing:
-        statusColor = KdsTheme.statusPreparing;
+        statusColor = kitchen.statusPreparing;
       case KitchenItemStatus.completed:
-        statusColor = KdsTheme.statusReady;
+        statusColor = kitchen.statusReady;
       case KitchenItemStatus.held:
-        statusColor = KdsTheme.ageAmber;
+        statusColor = kitchen.ageAmber;
       case KitchenItemStatus.cancelled:
-        statusColor = KdsTheme.statusBumped;
+        statusColor = kitchen.statusBumped;
     }
 
     return Opacity(
@@ -43,15 +45,15 @@ class ItemTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
           color: item.isNewlyAdded
-              ? KdsTheme.statusReady.withValues(alpha: 0.08)
+              ? kitchen.statusReady.withValues(alpha: 0.08)
               : item.isModified
-                  ? KdsTheme.ageAmber.withValues(alpha: 0.08)
+                  ? kitchen.ageAmber.withValues(alpha: 0.08)
                   : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
           border: item.isNewlyAdded
-              ? Border.all(color: KdsTheme.statusReady.withValues(alpha: 0.3))
+              ? Border.all(color: kitchen.statusReady.withValues(alpha: 0.3))
               : item.isModified
-                  ? Border.all(color: KdsTheme.ageAmber.withValues(alpha: 0.3))
+                  ? Border.all(color: kitchen.ageAmber.withValues(alpha: 0.3))
                   : null,
         ),
         child: Column(
@@ -75,7 +77,7 @@ class ItemTile extends StatelessWidget {
                   child: Text(
                     '${item.quantity}× ${item.productName}',
                     style: TextStyle(
-                      color: is86d ? KdsTheme.ageRed : Colors.white,
+                      color: is86d ? kitchen.ageRed : colors.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       decoration: is86d || isDone
@@ -87,28 +89,28 @@ class ItemTile extends StatelessWidget {
 
                 // Held badge
                 if (isHeld)
-                  _badge('HELD', KdsTheme.ageAmber),
+                  _badge('HELD', kitchen.ageAmber),
 
                 // 86'd badge
                 if (is86d)
-                  _badge('86\'d', KdsTheme.ageRed),
+                  _badge('86\'d', kitchen.ageRed),
 
                 // New / Modified badges
                 if (item.isNewlyAdded)
-                  _badge('NEW', KdsTheme.statusReady),
+                  _badge('NEW', kitchen.statusReady),
                 if (item.isModified && !item.isNewlyAdded)
-                  _badge('MOD', KdsTheme.ageAmber),
+                  _badge('MOD', kitchen.ageAmber),
 
                 // Action buttons
                 if (!isDone && !isHeld && !is86d) ...[
                   const SizedBox(width: 6),
                   if (item.status == KitchenItemStatus.pending &&
                       onMarkStarted != null)
-                    _iconBtn(Icons.play_arrow_rounded, KdsTheme.statusPreparing,
+                    _iconBtn(Icons.play_arrow_rounded, kitchen.statusPreparing,
                         onMarkStarted!),
                   if (item.status == KitchenItemStatus.preparing &&
                       onMarkCompleted != null)
-                    _iconBtn(Icons.check_circle_outline, KdsTheme.statusReady,
+                    _iconBtn(Icons.check_circle_outline, kitchen.statusReady,
                         onMarkCompleted!),
                 ],
               ],
@@ -123,8 +125,8 @@ class ItemTile extends StatelessWidget {
                   children: item.modifiers
                       .map((m) => Text(
                             '${m.action.label} ${m.name}',
-                            style: const TextStyle(
-                              color: Colors.white60,
+                            style: TextStyle(
+                              color: colors.textSecondary,
                               fontSize: 12,
                             ),
                           ))
@@ -138,8 +140,8 @@ class ItemTile extends StatelessWidget {
                 padding: const EdgeInsets.only(left: 16, top: 2),
                 child: Text(
                   item.specialInstructions!,
-                  style: const TextStyle(
-                    color: KdsTheme.ageAmber,
+                  style: TextStyle(
+                    color: kitchen.ageAmber,
                     fontSize: 12,
                     fontStyle: FontStyle.italic,
                   ),
@@ -152,8 +154,8 @@ class ItemTile extends StatelessWidget {
                 padding: const EdgeInsets.only(left: 16, top: 2),
                 child: Text(
                   item.cookingPreference!,
-                  style: const TextStyle(
-                    color: Colors.white54,
+                  style: TextStyle(
+                    color: colors.textSecondary,
                     fontSize: 12,
                   ),
                 ),

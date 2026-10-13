@@ -49,7 +49,13 @@ class KdsApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Xeboki KDS',
       debugShowCheckedModeBanner: false,
-      theme: KdsTheme.dark,
+      // SPEC-097: the till's themes, not a second set. Both are offered and
+      // the default follows Pro's, so the two apps look like one product.
+      // A kitchen screen is usually better dark — `ThemeMode.dark` here is
+      // the one line that changes it.
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.light,
       routerConfig: router,
     );
   }

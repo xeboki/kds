@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/kds_theme.dart';
 import '../../domain/models/kitchen_order.dart';
 import '../providers/kitchen_providers.dart';
 import '../widgets/order_card.dart';
@@ -51,6 +51,8 @@ class _KitchenDisplayScreenState
 
   @override
   Widget build(BuildContext context) {
+    final kitchen = context.kitchen;
+    final colors = context.appColors;
     final session = ref.watch(sessionProvider);
     final ordersAsync = ref.watch(kitchenOrdersProvider);
     final colCount = ref.watch(columnCountProvider);
@@ -75,16 +77,16 @@ class _KitchenDisplayScreenState
     });
 
     return Scaffold(
-      backgroundColor: KdsTheme.surface,
+      backgroundColor: colors.background,
       appBar: _buildAppBar(context, session, viewMode, colCount),
       body: Stack(
         children: [
           ordersAsync.when(
-            loading: () => const Center(
-                child: CircularProgressIndicator(color: KdsTheme.primary)),
+            loading: () => Center(
+                child: CircularProgressIndicator(color: colors.primary)),
             error: (e, _) => Center(
               child: Text('Error: $e',
-                  style: const TextStyle(color: KdsTheme.ageRed)),
+                  style: TextStyle(color: kitchen.ageRed)),
             ),
             data: (orders) {
               if (orders.isEmpty) {
@@ -112,16 +114,16 @@ class _KitchenDisplayScreenState
                 padding:
                     const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                 color: Colors.deepOrange.withValues(alpha: 0.9),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.notifications_active,
-                        color: Colors.white, size: 18),
+                        color: colors.textPrimary, size: 18),
                     SizedBox(width: 8),
                     Text(
                       'NEW ORDER',
                       style: TextStyle(
-                          color: Colors.white,
+                          color: colors.textPrimary,
                           fontWeight: FontWeight.w800,
                           fontSize: 14,
                           letterSpacing: 1.5),
@@ -142,8 +144,9 @@ class _KitchenDisplayScreenState
     KdsViewMode viewMode,
     int colCount,
   ) {
+    final colors = context.appColors;
     return AppBar(
-      backgroundColor: KdsTheme.surface,
+      backgroundColor: colors.background,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -155,7 +158,7 @@ class _KitchenDisplayScreenState
               session.locationName +
                   (session.stationId != null ? ' · ${session.stationId}' : ''),
               style:
-                  const TextStyle(fontSize: 11, color: Colors.white54),
+                  TextStyle(fontSize: 11, color: colors.textSecondary),
             ),
         ],
       ),
@@ -169,7 +172,7 @@ class _KitchenDisplayScreenState
                 : viewMode == KdsViewMode.tableView
                     ? Icons.table_restaurant
                     : Icons.list_alt_rounded,
-            color: Colors.white70,
+            color: colors.textSecondary,
           ),
           onPressed: () =>
               ref.read(viewModeProvider.notifier).cycle(),
@@ -178,14 +181,14 @@ class _KitchenDisplayScreenState
         // Column count picker
         IconButton(
           tooltip: 'Columns ($colCount)',
-          icon: const Icon(Icons.settings, color: Colors.white70),
+          icon: Icon(Icons.settings, color: colors.textSecondary),
           onPressed: () => _showColumnPicker(context, colCount),
         ),
 
         // Logout
         IconButton(
           tooltip: 'Sign out',
-          icon: const Icon(Icons.logout, color: Colors.white38),
+          icon: Icon(Icons.logout, color: colors.onDisabled),
           onPressed: () async {
             await ref.read(sessionProvider.notifier).logout();
             if (context.mounted) context.go('/login');
@@ -196,18 +199,19 @@ class _KitchenDisplayScreenState
   }
 
   void _showColumnPicker(BuildContext context, int current) {
+    final colors = context.appColors;
     showModalBottomSheet(
       context: context,
-      backgroundColor: KdsTheme.surfaceCard,
+      backgroundColor: colors.surface,
       builder: (_) => Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Columns',
+            Text('Columns',
                 style: TextStyle(
-                    color: Colors.white,
+                    color: colors.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
@@ -226,14 +230,14 @@ class _KitchenDisplayScreenState
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: selected
-                          ? KdsTheme.primary
-                          : KdsTheme.surfaceLow,
+                          ? colors.primary
+                          : colors.surfaceContainer,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       '$n',
                       style: TextStyle(
-                          color: selected ? Colors.white : Colors.white54,
+                          color: selected ? colors.onPrimary : colors.textSecondary,
                           fontSize: 22,
                           fontWeight: FontWeight.w700),
                     ),
@@ -279,6 +283,7 @@ class _TableConsolidatedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
     final byTable = <String, List<KitchenOrder>>{};
     for (final o in orders) {
       final key = o.tableNumber ?? 'No Table';
@@ -294,8 +299,8 @@ class _TableConsolidatedView extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 'Table ${e.key}',
-                style: const TextStyle(
-                    color: Colors.white54,
+                style: TextStyle(
+                    color: colors.textSecondary,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1),
               ),
@@ -315,7 +320,7 @@ class _TableConsolidatedView extends StatelessWidget {
                     .toList(),
               ),
             ),
-            const Divider(color: Colors.white12),
+            Divider(color: colors.border),
           ],
         );
       }).toList(),
@@ -331,6 +336,8 @@ class _ExpoView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final kitchen = context.kitchen;
+    final colors = context.appColors;
     final items = [
       for (final o in orders)
         for (final i in o.items)
@@ -343,7 +350,7 @@ class _ExpoView extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       itemCount: items.length,
       separatorBuilder: (_, __) =>
-          const Divider(color: Colors.white12, height: 1),
+          Divider(color: colors.border, height: 1),
       itemBuilder: (_, idx) {
         final entry = items[idx];
         return Padding(
@@ -356,13 +363,13 @@ class _ExpoView extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(
-                  color: KdsTheme.surfaceLow,
+                  color: colors.surfaceContainer,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   '#${entry.order.orderNumber}',
-                  style: const TextStyle(
-                      color: Colors.white70,
+                  style: TextStyle(
+                      color: colors.textSecondary,
                       fontSize: 12,
                       fontWeight: FontWeight.w700),
                   textAlign: TextAlign.center,
@@ -373,7 +380,7 @@ class _ExpoView extends StatelessWidget {
               Expanded(
                 child: Text(
                   '${entry.item.quantity}× ${entry.item.productName}',
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: TextStyle(color: colors.textPrimary, fontSize: 14),
                 ),
               ),
               // Status dot
@@ -383,10 +390,10 @@ class _ExpoView extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: entry.item.status == KitchenItemStatus.completed
-                      ? KdsTheme.statusReady
+                      ? kitchen.statusReady
                       : entry.item.status == KitchenItemStatus.preparing
-                          ? KdsTheme.statusPreparing
-                          : KdsTheme.statusPending,
+                          ? kitchen.statusPreparing
+                          : kitchen.statusPending,
                 ),
               ),
               const SizedBox(width: 8),
@@ -394,8 +401,8 @@ class _ExpoView extends StatelessWidget {
               if (entry.order.tableNumber != null)
                 Text(
                   'T${entry.order.tableNumber}',
-                  style: const TextStyle(
-                      color: Colors.white38, fontSize: 12),
+                  style: TextStyle(
+                      color: colors.onDisabled, fontSize: 12),
                 ),
             ],
           ),
@@ -412,15 +419,16 @@ class _EmptyBoard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    final colors = context.appColors;
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.restaurant, size: 64, color: Colors.white12),
+          Icon(Icons.restaurant, size: 64, color: colors.border),
           SizedBox(height: 16),
           Text(
             'No active orders',
-            style: TextStyle(color: Colors.white38, fontSize: 18),
+            style: TextStyle(color: colors.onDisabled, fontSize: 18),
           ),
         ],
       ),
