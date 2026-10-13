@@ -71,6 +71,36 @@ class KitchenOrder with _$KitchenOrder {
   List<KitchenOrderItem> itemsByStation(String stationId) =>
       items.where((i) => i.stationId == stationId).toList();
 
+  /// The lines this screen is responsible for.
+  ///
+  /// SPEC-097. `itemsByStation` has existed since the board was written and
+  /// is called by nothing: every screen rendered `items`, so pinning a screen
+  /// to the grill still showed it the salads and the desserts.
+  ///
+  /// Two cases are deliberately *not* filtered out:
+  ///
+  ///  * **No station pinned** ([stationId] null) — an unpinned screen, and an
+  ///    expo screen, assemble the whole order and must see every line.
+  ///  * **A line with no station of its own** — nothing claimed its category,
+  ///    so it goes to every station. Hiding it here would be the same silent
+  ///    food loss the routing rules exist to prevent: the line would appear
+  ///    on no screen at all and simply never be cooked.
+  List<KitchenOrderItem> linesFor(String? stationId) {
+    if (stationId == null || stationId.isEmpty) return items;
+    return items
+        .where((i) => i.stationId == null || i.stationId == stationId)
+        .toList();
+  }
+
+  /// [byCourse], narrowed to one station. Same two exemptions as [linesFor].
+  Map<int, List<KitchenOrderItem>> coursesFor(String? stationId) {
+    final map = <int, List<KitchenOrderItem>>{};
+    for (final item in linesFor(stationId)) {
+      map.putIfAbsent(item.courseNumber ?? 1, () => []).add(item);
+    }
+    return map;
+  }
+
   bool get isComplete =>
       items.every((i) => i.status == KitchenItemStatus.completed ||
           i.status == KitchenItemStatus.cancelled);

@@ -8,9 +8,14 @@ import 'timer_badge.dart';
 
 /// Main KDS order card. Shows order header, items, and bump controls.
 class OrderCard extends ConsumerWidget {
-  const OrderCard({super.key, required this.order});
+  const OrderCard({super.key, required this.order, this.stationId});
 
   final KitchenOrder order;
+
+  /// The station this screen is pinned to, or null for an unpinned or expo
+  /// screen. SPEC-097 — until this existed every screen showed every line,
+  /// so pinning a screen to the grill still put the desserts in front of it.
+  final String? stationId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -72,7 +77,8 @@ class OrderCard extends ConsumerWidget {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
-              child: _ItemsBody(order: order, repo: repo),
+              child: _ItemsBody(
+                  order: order, repo: repo, stationId: stationId),
             ),
           ),
 
@@ -211,19 +217,22 @@ class _PriorityIcon extends StatelessWidget {
 // ── Items body ─────────────────────────────────────────────────────────────────
 
 class _ItemsBody extends StatelessWidget {
-  const _ItemsBody({required this.order, required this.repo});
+  const _ItemsBody(
+      {required this.order, required this.repo, this.stationId});
   final KitchenOrder order;
   final dynamic repo;
+  final String? stationId;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final kitchen = context.kitchen;
-    final byCourse = order.byCourse;
+    final byCourse = order.coursesFor(stationId);
     if (byCourse.length <= 1) {
       // No course grouping
       return Column(
-        children: order.items
+        children: order
+            .linesFor(stationId)
             .map((item) => ItemTile(
                   item: item,
                   onMarkStarted: () =>

@@ -112,4 +112,85 @@ void main() {
     expect(find.textContaining('001'), findsWidgets);
     await _disposeTimer(tester);
   });
+
+  testWidgets('a pinned card shows this station\'s line', (tester) async {
+    await _pumpMixed(tester, 'st_grill');
+    expect(find.textContaining('Burger'), findsOneWidget);
+    await _disposeTimer(tester);
+  });
+
+  testWidgets('a pinned card hides another station\'s line', (tester) async {
+    await _pumpMixed(tester, 'st_grill');
+    expect(find.textContaining('Salad'), findsNothing,
+        reason: 'the grill is being shown the cold section\'s work — the card '
+            'is rendering every line again instead of this station\'s');
+    await _disposeTimer(tester);
+  });
+
+  testWidgets('a pinned card still shows an unclaimed line', (tester) async {
+    await _pumpMixed(tester, 'st_grill');
+    expect(find.textContaining('Napkins'), findsOneWidget,
+        reason: 'a line no station claimed is on no screen at all, so nobody '
+            'would make it');
+    await _disposeTimer(tester);
+  });
+
+  testWidgets('an unpinned card shows every line', (tester) async {
+    await _pumpMixed(tester, null);
+    for (final name in ['Burger', 'Salad', 'Napkins']) {
+      expect(find.textContaining(name), findsOneWidget,
+          reason: 'an expo screen must assemble the whole order');
+    }
+    await _disposeTimer(tester);
+  });
+}
+
+// ── SPEC-097: the card renders ONE station's lines ──────────────────────────
+//
+// `linesFor` / `coursesFor` are covered by test/domain, but a unit test of a
+// helper nothing calls proves nothing: reverting the card to `order.items`
+// left every one of those tests green while the grill cook saw the desserts
+// again. This is the test that fails for that, so it renders the widget and
+// reads what is on the screen.
+
+KitchenOrderItem _stationLine(String name, String? stationId) =>
+    KitchenOrderItem(
+      id: name,
+      orderId: 'o',
+      productId: 'p_$name',
+      productName: name,
+      quantity: 1,
+      status: KitchenItemStatus.pending,
+      stationId: stationId,
+    );
+
+KitchenOrder _mixedOrder() => KitchenOrder(
+      id: '1',
+      orderId: 'o',
+      locationId: 'l',
+      orderNumber: '001',
+      orderType: KitchenOrderType.dineIn,
+      priority: KitchenOrderPriority.normal,
+      status: KitchenOrderStatus.pending,
+      orderTime: DateTime.now(),
+      items: [
+        _stationLine('Burger', 'st_grill'),
+        _stationLine('Salad', 'st_cold'),
+        _stationLine('Napkins', null),
+      ],
+    );
+
+Future<void> _pumpMixed(WidgetTester tester, String? stationId) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        kitchenRepositoryProvider.overrideWithValue(_FakeKitchenRepository())
+      ],
+      child: MaterialApp(
+        home: Scaffold(
+          body: OrderCard(order: _mixedOrder(), stationId: stationId),
+        ),
+      ),
+    ),
+  );
 }
