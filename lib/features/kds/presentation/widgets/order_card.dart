@@ -8,14 +8,21 @@ import 'timer_badge.dart';
 
 /// Main KDS order card. Shows order header, items, and bump controls.
 class OrderCard extends ConsumerWidget {
-  const OrderCard({super.key, required this.order, this.stationId});
+  const OrderCard({
+    super.key,
+    required this.order,
+    this.routingCategoryIds = const [],
+    this.isExpo = false,
+  });
 
   final KitchenOrder order;
 
-  /// The station this screen is pinned to, or null for an unpinned or expo
-  /// screen. SPEC-097 — until this existed every screen showed every line,
-  /// so pinning a screen to the grill still put the desserts in front of it.
-  final String? stationId;
+  /// SPEC-097, Square's model: the kitchen routing categories this screen is
+  /// switched on for. Until this existed every screen showed every line.
+  final List<String> routingCategoryIds;
+
+  /// An expo screen assembles the whole order and shows every line.
+  final bool isExpo;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -78,7 +85,10 @@ class OrderCard extends ConsumerWidget {
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
               child: _ItemsBody(
-                  order: order, repo: repo, stationId: stationId),
+                  order: order,
+                  repo: repo,
+                  routingCategoryIds: routingCategoryIds,
+                  isExpo: isExpo),
             ),
           ),
 
@@ -217,22 +227,28 @@ class _PriorityIcon extends StatelessWidget {
 // ── Items body ─────────────────────────────────────────────────────────────────
 
 class _ItemsBody extends StatelessWidget {
-  const _ItemsBody(
-      {required this.order, required this.repo, this.stationId});
+  const _ItemsBody({
+    required this.order,
+    required this.repo,
+    this.routingCategoryIds = const [],
+    this.isExpo = false,
+  });
   final KitchenOrder order;
   final dynamic repo;
-  final String? stationId;
+  final List<String> routingCategoryIds;
+  final bool isExpo;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final kitchen = context.kitchen;
-    final byCourse = order.coursesFor(stationId);
+    final byCourse =
+        order.coursesFor(routingCategoryIds, isExpo: isExpo);
     if (byCourse.length <= 1) {
       // No course grouping
       return Column(
         children: order
-            .linesFor(stationId)
+            .linesFor(routingCategoryIds, isExpo: isExpo)
             .map((item) => ItemTile(
                   item: item,
                   onMarkStarted: () =>

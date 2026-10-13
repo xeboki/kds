@@ -1,23 +1,23 @@
-/// What a kitchen screen is for.
+/// What a kitchen screen is, and what it therefore shows.
 ///
-/// SPEC-097. We had `expo` as a *station type* — one more kind of station
-/// alongside grill and fryer. Square and Toast both make it a property of the
-/// **device**: you choose Prep or Expo when you set a screen up, and an
-/// expediter screen shows the whole order while a prep screen shows only the
-/// lines its section is making.
+/// SPEC-097, Square's model and its naming. A screen is set up as a **Prep
+/// station** or an **Expo station**, and a prep screen switches on the
+/// *kitchen routing categories* it wants to show. Nothing is pinned to
+/// anything: a screen can show several categories, two screens can show the
+/// same one, and re-pointing a tablet rewrites no tickets.
 ///
-/// That distinction matters because the two are not the same question. A
-/// station is a place in the kitchen and exists whether or not anything is
-/// plugged in; a role belongs to the tablet on the wall. The pass can be a
-/// station that food is routed to *and* the screen that assembles the order,
-/// and with only a station type there is no way to say so.
+/// Both are properties of the registered screen, set in the back office, not
+/// chosen on the device — so replacing the hardware keeps them, and a cook
+/// cannot turn the grill screen into the pass by leaning on it.
 library;
 
 enum KdsScreenRole {
-  /// Makes part of the order. Shows the lines for the station it is pinned to.
+  /// Makes part of the order. Shows the routing categories it is switched on
+  /// for, plus anything nobody claimed.
   prep('prep'),
 
-  /// Assembles the order. Shows every line, whichever station is making it.
+  /// Assembles the order. Shows every line, whichever part of the kitchen is
+  /// making it.
   expo('expo');
 
   const KdsScreenRole(this.wire);
@@ -28,8 +28,8 @@ enum KdsScreenRole {
   /// What a record says, or [prep] when it says nothing.
   ///
   /// Absent means prep: every screen registered before this field existed is
-  /// one somebody pinned to a station, and reading those as expo would widen
-  /// a grill board to the whole menu overnight.
+  /// one somebody set up to show part of the kitchen, and reading those as
+  /// expo would widen a grill board to the whole menu overnight.
   static KdsScreenRole fromWire(String? value) {
     for (final role in KdsScreenRole.values) {
       if (role.wire == value) return role;
@@ -38,17 +38,32 @@ enum KdsScreenRole {
   }
 }
 
-/// The station a board should filter by, given what this screen is.
+/// Does this screen show this line?
 ///
-/// This is the whole rule, in one place, because it is the kind of thing that
-/// otherwise gets re-derived slightly differently in the query, the card and
-/// the header — and a board that filters its orders by one answer and its
-/// lines by another shows a ticket with nothing on it.
+/// The whole display rule, in one place, so the query, the card and the header
+/// cannot answer it three slightly different ways — a board that filters its
+/// orders by one answer and its lines by another shows a ticket with nothing
+/// on it.
 ///
-/// Expo ignores its pin entirely: an expediter pinned to the pass still has to
-/// see the grill's lines, or it cannot tell when the order is complete.
-String? stationFilterFor(KdsScreenRole role, String? stationId) {
-  if (role == KdsScreenRole.expo) return null;
-  if (stationId == null || stationId.isEmpty) return null;
-  return stationId;
+///   * An **expo** screen shows everything. It assembles the order, so it has
+///     to see every line whichever part of the kitchen is making it.
+///   * A **prep** screen shows the routing categories it is switched on for,
+///     **plus anything nobody claimed**.
+///
+/// That second half is the rule that stops food being lost. A line in no
+/// routing category at all appears on every prep screen rather than none: the
+/// opposite default is silent — it shows up nowhere, nothing errors, and the
+/// first anybody knows is a customer asking where their order went.
+///
+/// This mirrors `API/services/kitchen_routing.py::screen_shows`, and the two
+/// are held together by `API/tests/fixtures/kitchen_routing_cases.json`, which
+/// both test suites read.
+bool screenShowsLine({
+  required List<String> lineRoutingCategoryIds,
+  required List<String> screenRoutingCategoryIds,
+  required bool isExpo,
+}) {
+  if (isExpo) return true;
+  if (lineRoutingCategoryIds.isEmpty) return true;
+  return screenRoutingCategoryIds.any(lineRoutingCategoryIds.contains);
 }

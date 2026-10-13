@@ -87,6 +87,11 @@ _$KitchenOrderImpl _$$KitchenOrderImplFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
+      routingCategoryIds: $checkedConvert(
+        'routing_category_ids',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
       sourceLabel: $checkedConvert('source_label', (v) => v as String?),
       metadata: $checkedConvert('metadata', (v) => v as Map<String, dynamic>?),
     );
@@ -114,6 +119,7 @@ _$KitchenOrderImpl _$$KitchenOrderImplFromJson(
     'specialInstructions': 'special_instructions',
     'allergyInfo': 'allergy_info',
     'assignedStations': 'assigned_stations',
+    'routingCategoryIds': 'routing_category_ids',
     'sourceLabel': 'source_label',
   },
 );
@@ -145,6 +151,7 @@ Map<String, dynamic> _$$KitchenOrderImplToJson(_$KitchenOrderImpl instance) =>
       'special_instructions': instance.specialInstructions,
       'allergy_info': instance.allergyInfo,
       'assigned_stations': instance.assignedStations,
+      'routing_category_ids': instance.routingCategoryIds,
       'source_label': instance.sourceLabel,
       'metadata': instance.metadata,
     };
@@ -191,6 +198,12 @@ _$KitchenOrderItemImpl _$$KitchenOrderItemImplFromJson(
       ),
       stationId: $checkedConvert('station_id', (v) => v as String?),
       stationName: $checkedConvert('station_name', (v) => v as String?),
+      routingCategoryIds: $checkedConvert(
+        'routing_category_ids',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      isUnclaimed: $checkedConvert('is_unclaimed', (v) => v as bool? ?? false),
       seatNumber: $checkedConvert('seat_number', (v) => (v as num?)?.toInt()),
       modifiers: $checkedConvert(
         'modifiers',
@@ -250,6 +263,8 @@ _$KitchenOrderItemImpl _$$KitchenOrderItemImplFromJson(
     'productName': 'product_name',
     'stationId': 'station_id',
     'stationName': 'station_name',
+    'routingCategoryIds': 'routing_category_ids',
+    'isUnclaimed': 'is_unclaimed',
     'seatNumber': 'seat_number',
     'specialInstructions': 'special_instructions',
     'cookingPreference': 'cooking_preference',
@@ -277,6 +292,8 @@ Map<String, dynamic> _$$KitchenOrderItemImplToJson(
   'status': _$KitchenItemStatusEnumMap[instance.status]!,
   'station_id': instance.stationId,
   'station_name': instance.stationName,
+  'routing_category_ids': instance.routingCategoryIds,
+  'is_unclaimed': instance.isUnclaimed,
   'seat_number': instance.seatNumber,
   'modifiers': instance.modifiers.map((e) => e.toJson()).toList(),
   'special_instructions': instance.specialInstructions,

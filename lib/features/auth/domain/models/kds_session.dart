@@ -11,8 +11,11 @@ class KdsSession {
   final String locationId;
   final String locationName;
 
-  /// Optional station this KDS is pinned to (null = show all stations).
-  final String? stationId;
+  /// The kitchen routing categories this screen is switched on for.
+  ///
+  /// SPEC-097, Square's model: a prep screen shows these plus anything nobody
+  /// claimed; an expo screen carries them and ignores them.
+  final List<String> routingCategoryIds;
 
   /// What this screen is for — prep or expo.
   ///
@@ -21,10 +24,14 @@ class KdsSession {
   /// way Square and Toast treat it, so replacing the hardware keeps the role.
   final KdsScreenRole role;
 
-  /// The station this board filters by, which is [stationId] for a prep
-  /// screen and nothing at all for an expo screen — an expediter has to see
-  /// every station's lines to know when the order is complete.
-  String? get boardStationId => stationFilterFor(role, stationId);
+  bool get isExpo => role == KdsScreenRole.expo;
+
+  /// Whether this screen shows a line carrying [lineCategories].
+  bool shows(List<String> lineCategories) => screenShowsLine(
+        lineRoutingCategoryIds: lineCategories,
+        screenRoutingCategoryIds: routingCategoryIds,
+        isExpo: isExpo,
+      );
 
   /// Display name of the logged-in staff member.
   final String staffName;
@@ -51,7 +58,7 @@ class KdsSession {
     required this.locationName,
     required this.staffName,
     required this.staffId,
-    this.stationId,
+    this.routingCategoryIds = const [],
     this.role = KdsScreenRole.prep,
     this.subscriptionPlan = '',
     this.subscriptionStatus = '',
@@ -79,11 +86,15 @@ class KdsSession {
       subscriptionPlan: json['subscription_plan'] as String? ?? '',
       subscriptionStatus: json['subscription_status'] as String? ?? '',
       role: KdsScreenRole.fromWire(json['screen_role'] as String?),
+      routingCategoryIds:
+          ((json['routing_category_ids'] as List?) ?? const [])
+              .map((e) => '$e')
+              .toList(),
     );
   }
 
   KdsSession copyWith({
-    String? stationId,
+    List<String>? routingCategoryIds,
     String? locationId,
     String? locationName,
     KdsScreenRole? role,
@@ -96,7 +107,7 @@ class KdsSession {
       locationName: locationName ?? this.locationName,
       staffName: staffName,
       staffId: staffId,
-      stationId: stationId ?? this.stationId,
+      routingCategoryIds: routingCategoryIds ?? this.routingCategoryIds,
       // Carried explicitly. A copyWith that omits a field resets it to the
       // constructor default, which here would silently turn every expo
       // screen into a prep screen the next time somebody picked a station.

@@ -97,10 +97,15 @@ class _KitchenDisplayScreenState
                   return _GridView(
                       orders: orders,
                       colCount: colCount,
-                      stationId: session?.boardStationId);
+                      routingCategoryIds:
+                          session?.routingCategoryIds ?? const [],
+                      isExpo: session?.isExpo ?? false);
                 case KdsViewMode.tableView:
                   return _TableConsolidatedView(
-                      orders: orders, stationId: session?.boardStationId);
+                      orders: orders,
+                      routingCategoryIds:
+                          session?.routingCategoryIds ?? const [],
+                      isExpo: session?.isExpo ?? false);
                 case KdsViewMode.expoView:
                   // No station: the expediter assembles the whole order and
                   // has to see every line, whichever station is making it.
@@ -261,14 +266,19 @@ class _KitchenDisplayScreenState
 // ── Grid view ──────────────────────────────────────────────────────────────────
 
 class _GridView extends StatelessWidget {
-  const _GridView(
-      {required this.orders, required this.colCount, this.stationId});
+  const _GridView({
+    required this.orders,
+    required this.colCount,
+    this.routingCategoryIds = const [],
+    this.isExpo = false,
+  });
   final List<KitchenOrder> orders;
   final int colCount;
 
-  /// The station this screen is pinned to, passed down so a card shows only
-  /// the lines this kitchen section is making.
-  final String? stationId;
+  /// Passed down so a card shows only the lines this screen is responsible
+  /// for. SPEC-097, Square's model.
+  final List<String> routingCategoryIds;
+  final bool isExpo;
 
   @override
   Widget build(BuildContext context) {
@@ -281,8 +291,10 @@ class _GridView extends StatelessWidget {
         childAspectRatio: 0.7,
       ),
       itemCount: orders.length,
-      itemBuilder: (_, i) =>
-          OrderCard(order: orders[i], stationId: stationId),
+      itemBuilder: (_, i) => OrderCard(
+          order: orders[i],
+          routingCategoryIds: routingCategoryIds,
+          isExpo: isExpo),
     );
   }
 }
@@ -290,12 +302,17 @@ class _GridView extends StatelessWidget {
 // ── Table-consolidated view ────────────────────────────────────────────────────
 
 class _TableConsolidatedView extends StatelessWidget {
-  const _TableConsolidatedView({required this.orders, this.stationId});
+  const _TableConsolidatedView({
+    required this.orders,
+    this.routingCategoryIds = const [],
+    this.isExpo = false,
+  });
   final List<KitchenOrder> orders;
 
-  /// The station this screen is pinned to — the table view is still one
-  /// section's board, grouped by table rather than by ticket.
-  final String? stationId;
+  /// The table view is still this screen's board, grouped by table rather
+  /// than by ticket.
+  final List<String> routingCategoryIds;
+  final bool isExpo;
 
   @override
   Widget build(BuildContext context) {
@@ -331,7 +348,9 @@ class _TableConsolidatedView extends StatelessWidget {
                           child: Padding(
                             padding: const EdgeInsets.only(right: 10),
                             child: OrderCard(
-                                order: o, stationId: stationId),
+                                order: o,
+                                routingCategoryIds: routingCategoryIds,
+                                isExpo: isExpo),
                           ),
                         ))
                     .toList(),

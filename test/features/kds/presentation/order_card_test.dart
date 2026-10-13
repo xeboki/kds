@@ -113,30 +113,31 @@ void main() {
     await _disposeTimer(tester);
   });
 
-  testWidgets('a pinned card shows this station\'s line', (tester) async {
-    await _pumpMixed(tester, 'st_grill');
+  testWidgets('a prep card shows a line in a category it is on for',
+      (tester) async {
+    await _pumpMixed(tester, const ['rc_grill']);
     expect(find.textContaining('Burger'), findsOneWidget);
     await _disposeTimer(tester);
   });
 
-  testWidgets('a pinned card hides another station\'s line', (tester) async {
-    await _pumpMixed(tester, 'st_grill');
+  testWidgets('a prep card hides another category\'s line', (tester) async {
+    await _pumpMixed(tester, const ['rc_grill']);
     expect(find.textContaining('Salad'), findsNothing,
         reason: 'the grill is being shown the cold section\'s work — the card '
-            'is rendering every line again instead of this station\'s');
+            'is rendering every line again instead of this screen\'s');
     await _disposeTimer(tester);
   });
 
-  testWidgets('a pinned card still shows an unclaimed line', (tester) async {
-    await _pumpMixed(tester, 'st_grill');
+  testWidgets('a prep card still shows an unclaimed line', (tester) async {
+    await _pumpMixed(tester, const ['rc_grill']);
     expect(find.textContaining('Napkins'), findsOneWidget,
         reason: 'a line no station claimed is on no screen at all, so nobody '
             'would make it');
     await _disposeTimer(tester);
   });
 
-  testWidgets('an unpinned card shows every line', (tester) async {
-    await _pumpMixed(tester, null);
+  testWidgets('an expo card shows every line', (tester) async {
+    await _pumpMixed(tester, const [], isExpo: true);
     for (final name in ['Burger', 'Salad', 'Napkins']) {
       expect(find.textContaining(name), findsOneWidget,
           reason: 'an expo screen must assemble the whole order');
@@ -153,7 +154,7 @@ void main() {
 // again. This is the test that fails for that, so it renders the widget and
 // reads what is on the screen.
 
-KitchenOrderItem _stationLine(String name, String? stationId) =>
+KitchenOrderItem _routedLine(String name, List<String> routingCategoryIds) =>
     KitchenOrderItem(
       id: name,
       orderId: 'o',
@@ -161,7 +162,8 @@ KitchenOrderItem _stationLine(String name, String? stationId) =>
       productName: name,
       quantity: 1,
       status: KitchenItemStatus.pending,
-      stationId: stationId,
+      routingCategoryIds: routingCategoryIds,
+      isUnclaimed: routingCategoryIds.isEmpty,
     );
 
 KitchenOrder _mixedOrder() => KitchenOrder(
@@ -174,13 +176,14 @@ KitchenOrder _mixedOrder() => KitchenOrder(
       status: KitchenOrderStatus.pending,
       orderTime: DateTime.now(),
       items: [
-        _stationLine('Burger', 'st_grill'),
-        _stationLine('Salad', 'st_cold'),
-        _stationLine('Napkins', null),
+        _routedLine('Burger', const ['rc_grill']),
+        _routedLine('Salad', const ['rc_cold']),
+        _routedLine('Napkins', const []),
       ],
     );
 
-Future<void> _pumpMixed(WidgetTester tester, String? stationId) async {
+Future<void> _pumpMixed(WidgetTester tester, List<String> routingCategoryIds,
+    {bool isExpo = false}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -188,7 +191,11 @@ Future<void> _pumpMixed(WidgetTester tester, String? stationId) async {
       ],
       child: MaterialApp(
         home: Scaffold(
-          body: OrderCard(order: _mixedOrder(), stationId: stationId),
+          body: OrderCard(
+            order: _mixedOrder(),
+            routingCategoryIds: routingCategoryIds,
+            isExpo: isExpo,
+          ),
         ),
       ),
     ),

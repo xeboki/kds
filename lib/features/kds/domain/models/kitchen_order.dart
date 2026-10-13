@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'screen_role.dart';
+
 part 'kitchen_order.freezed.dart';
 part 'kitchen_order.g.dart';
 
@@ -46,6 +48,9 @@ class KitchenOrder with _$KitchenOrder {
     // Station routing
     @Default([]) List<String> assignedStations,
 
+    /// The union of its lines' routing categories.
+    @Default([]) List<String> routingCategoryIds,
+
     // Source
     String? sourceLabel, // 'DoorDash', 'Uber Eats', 'Online', etc.
 
@@ -73,29 +78,33 @@ class KitchenOrder with _$KitchenOrder {
 
   /// The lines this screen is responsible for.
   ///
-  /// SPEC-097. `itemsByStation` has existed since the board was written and
-  /// is called by nothing: every screen rendered `items`, so pinning a screen
-  /// to the grill still showed it the salads and the desserts.
+  /// SPEC-097, Square's model. The whole rule is `screenShowsLine`, which this
+  /// defers to rather than restating — a board that filters its orders by one
+  /// answer and its lines by another shows a ticket with nothing on it.
   ///
-  /// Two cases are deliberately *not* filtered out:
-  ///
-  ///  * **No station pinned** ([stationId] null) — an unpinned screen, and an
-  ///    expo screen, assemble the whole order and must see every line.
-  ///  * **A line with no station of its own** — nothing claimed its category,
-  ///    so it goes to every station. Hiding it here would be the same silent
-  ///    food loss the routing rules exist to prevent: the line would appear
-  ///    on no screen at all and simply never be cooked.
-  List<KitchenOrderItem> linesFor(String? stationId) {
-    if (stationId == null || stationId.isEmpty) return items;
-    return items
-        .where((i) => i.stationId == null || i.stationId == stationId)
-        .toList();
-  }
+  /// An expo screen sees every line. A prep screen sees the routing categories
+  /// it is switched on for, **plus anything nobody claimed** — hiding those
+  /// would put a line on no screen at all and it would never be cooked.
+  List<KitchenOrderItem> linesFor(
+    List<String> screenRoutingCategoryIds, {
+    bool isExpo = false,
+  }) =>
+      items
+          .where((i) => screenShowsLine(
+                lineRoutingCategoryIds: i.routingCategoryIds,
+                screenRoutingCategoryIds: screenRoutingCategoryIds,
+                isExpo: isExpo,
+              ))
+          .toList();
 
-  /// [byCourse], narrowed to one station. Same two exemptions as [linesFor].
-  Map<int, List<KitchenOrderItem>> coursesFor(String? stationId) {
+  /// [byCourse], narrowed the same way as [linesFor].
+  Map<int, List<KitchenOrderItem>> coursesFor(
+    List<String> screenRoutingCategoryIds, {
+    bool isExpo = false,
+  }) {
     final map = <int, List<KitchenOrderItem>>{};
-    for (final item in linesFor(stationId)) {
+    for (final item
+        in linesFor(screenRoutingCategoryIds, isExpo: isExpo)) {
       map.putIfAbsent(item.courseNumber ?? 1, () => []).add(item);
     }
     return map;
@@ -137,6 +146,15 @@ class KitchenOrderItem with _$KitchenOrderItem {
     // Station
     String? stationId,
     String? stationName,
+
+    /// SPEC-097, Square's model. The kitchen routing categories that claimed
+    /// this line. Several is normal — an item can be in more than one.
+    @Default([]) List<String> routingCategoryIds,
+
+    /// Nobody claimed it. Said on the line rather than inferred from an empty
+    /// list, because a reader working it out from emptiness will one day meet
+    /// an empty list that means "not routed yet" instead, and hide the line.
+    @Default(false) bool isUnclaimed,
 
     // Seat
     int? seatNumber,

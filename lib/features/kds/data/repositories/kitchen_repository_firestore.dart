@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/services/firebase_init_service.dart';
 import '../../domain/models/kitchen_order.dart';
+import '../../domain/models/screen_role.dart';
 import '../../domain/repositories/kitchen_repository.dart';
 
 class KitchenRepositoryFirestore implements KitchenRepository {
@@ -22,7 +23,8 @@ class KitchenRepositoryFirestore implements KitchenRepository {
   @override
   Stream<List<KitchenOrder>> watchOrders({
     required String locationId,
-    String? stationId,
+    List<String> routingCategoryIds = const [],
+    bool isExpo = false,
     KitchenOrderStatus? status,
   }) {
     var query = _orders
@@ -38,11 +40,17 @@ class KitchenRepositoryFirestore implements KitchenRepository {
           .map((d) => KitchenOrder.fromJson({...d.data(), 'id': d.id}))
           .toList();
 
-      if (stationId != null) {
+      // SPEC-097. An order reaches this screen when any of its lines does.
+      // Decided by `screenShowsLine` rather than restated here, so the order
+      // filter and the line filter cannot disagree — a board that admits a
+      // ticket and then renders none of its lines shows an empty card.
+      if (!isExpo) {
         orders = orders
-            .where((o) =>
-                o.assignedStations.isEmpty ||
-                o.assignedStations.contains(stationId))
+            .where((o) => o.items.any((i) => screenShowsLine(
+                  lineRoutingCategoryIds: i.routingCategoryIds,
+                  screenRoutingCategoryIds: routingCategoryIds,
+                  isExpo: false,
+                )))
             .toList();
       }
       if (status != null) {

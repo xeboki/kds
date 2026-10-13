@@ -34,10 +34,13 @@ class SessionNotifier extends StateNotifier<KdsSession?> {
     state = session;
   }
 
-  /// Update the pinned station for this terminal (persisted separately).
-  void setStation(String? stationId) {
+  /// Change which kitchen routing categories this screen shows.
+  ///
+  /// SPEC-097 — set in the back office on the screen's own record, so this is
+  /// what applies it in-session once that arrives.
+  void setRoutingCategories(List<String> routingCategoryIds) {
     if (state == null) return;
-    state = state!.copyWith(stationId: stationId);
+    state = state!.copyWith(routingCategoryIds: routingCategoryIds);
   }
 
   Future<void> logout() async {

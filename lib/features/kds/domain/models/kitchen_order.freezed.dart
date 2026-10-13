@@ -47,7 +47,10 @@ mixin _$KitchenOrder {
   String? get specialInstructions => throw _privateConstructorUsedError;
   String? get allergyInfo =>
       throw _privateConstructorUsedError; // Station routing
-  List<String> get assignedStations =>
+  List<String> get assignedStations => throw _privateConstructorUsedError;
+
+  /// The union of its lines' routing categories.
+  List<String> get routingCategoryIds =>
       throw _privateConstructorUsedError; // Source
   String? get sourceLabel =>
       throw _privateConstructorUsedError; // 'DoorDash', 'Uber Eats', 'Online', etc.
@@ -97,6 +100,7 @@ abstract class $KitchenOrderCopyWith<$Res> {
     String? specialInstructions,
     String? allergyInfo,
     List<String> assignedStations,
+    List<String> routingCategoryIds,
     String? sourceLabel,
     Map<String, dynamic>? metadata,
   });
@@ -142,6 +146,7 @@ class _$KitchenOrderCopyWithImpl<$Res, $Val extends KitchenOrder>
     Object? specialInstructions = freezed,
     Object? allergyInfo = freezed,
     Object? assignedStations = null,
+    Object? routingCategoryIds = null,
     Object? sourceLabel = freezed,
     Object? metadata = freezed,
   }) {
@@ -247,6 +252,10 @@ class _$KitchenOrderCopyWithImpl<$Res, $Val extends KitchenOrder>
                 ? _value.assignedStations
                 : assignedStations // ignore: cast_nullable_to_non_nullable
                       as List<String>,
+            routingCategoryIds: null == routingCategoryIds
+                ? _value.routingCategoryIds
+                : routingCategoryIds // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
             sourceLabel: freezed == sourceLabel
                 ? _value.sourceLabel
                 : sourceLabel // ignore: cast_nullable_to_non_nullable
@@ -296,6 +305,7 @@ abstract class _$$KitchenOrderImplCopyWith<$Res>
     String? specialInstructions,
     String? allergyInfo,
     List<String> assignedStations,
+    List<String> routingCategoryIds,
     String? sourceLabel,
     Map<String, dynamic>? metadata,
   });
@@ -340,6 +350,7 @@ class __$$KitchenOrderImplCopyWithImpl<$Res>
     Object? specialInstructions = freezed,
     Object? allergyInfo = freezed,
     Object? assignedStations = null,
+    Object? routingCategoryIds = null,
     Object? sourceLabel = freezed,
     Object? metadata = freezed,
   }) {
@@ -445,6 +456,10 @@ class __$$KitchenOrderImplCopyWithImpl<$Res>
             ? _value._assignedStations
             : assignedStations // ignore: cast_nullable_to_non_nullable
                   as List<String>,
+        routingCategoryIds: null == routingCategoryIds
+            ? _value._routingCategoryIds
+            : routingCategoryIds // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
         sourceLabel: freezed == sourceLabel
             ? _value.sourceLabel
             : sourceLabel // ignore: cast_nullable_to_non_nullable
@@ -487,10 +502,12 @@ class _$KitchenOrderImpl extends _KitchenOrder {
     this.specialInstructions,
     this.allergyInfo,
     final List<String> assignedStations = const [],
+    final List<String> routingCategoryIds = const [],
     this.sourceLabel,
     final Map<String, dynamic>? metadata,
   }) : _items = items,
        _assignedStations = assignedStations,
+       _routingCategoryIds = routingCategoryIds,
        _metadata = metadata,
        super._();
 
@@ -571,6 +588,19 @@ class _$KitchenOrderImpl extends _KitchenOrder {
     return EqualUnmodifiableListView(_assignedStations);
   }
 
+  /// The union of its lines' routing categories.
+  final List<String> _routingCategoryIds;
+
+  /// The union of its lines' routing categories.
+  @override
+  @JsonKey()
+  List<String> get routingCategoryIds {
+    if (_routingCategoryIds is EqualUnmodifiableListView)
+      return _routingCategoryIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_routingCategoryIds);
+  }
+
   // Source
   @override
   final String? sourceLabel;
@@ -590,7 +620,7 @@ class _$KitchenOrderImpl extends _KitchenOrder {
 
   @override
   String toString() {
-    return 'KitchenOrder(id: $id, orderId: $orderId, locationId: $locationId, tableNumber: $tableNumber, tableSectionName: $tableSectionName, guestCount: $guestCount, seatCount: $seatCount, orderNumber: $orderNumber, orderType: $orderType, priority: $priority, status: $status, items: $items, serverId: $serverId, serverName: $serverName, preparedBy: $preparedBy, orderTime: $orderTime, startedAt: $startedAt, readyAt: $readyAt, servedAt: $servedAt, bumpedAt: $bumpedAt, recalledAt: $recalledAt, scheduledFor: $scheduledFor, specialInstructions: $specialInstructions, allergyInfo: $allergyInfo, assignedStations: $assignedStations, sourceLabel: $sourceLabel, metadata: $metadata)';
+    return 'KitchenOrder(id: $id, orderId: $orderId, locationId: $locationId, tableNumber: $tableNumber, tableSectionName: $tableSectionName, guestCount: $guestCount, seatCount: $seatCount, orderNumber: $orderNumber, orderType: $orderType, priority: $priority, status: $status, items: $items, serverId: $serverId, serverName: $serverName, preparedBy: $preparedBy, orderTime: $orderTime, startedAt: $startedAt, readyAt: $readyAt, servedAt: $servedAt, bumpedAt: $bumpedAt, recalledAt: $recalledAt, scheduledFor: $scheduledFor, specialInstructions: $specialInstructions, allergyInfo: $allergyInfo, assignedStations: $assignedStations, routingCategoryIds: $routingCategoryIds, sourceLabel: $sourceLabel, metadata: $metadata)';
   }
 
   @override
@@ -645,6 +675,10 @@ class _$KitchenOrderImpl extends _KitchenOrder {
               other._assignedStations,
               _assignedStations,
             ) &&
+            const DeepCollectionEquality().equals(
+              other._routingCategoryIds,
+              _routingCategoryIds,
+            ) &&
             (identical(other.sourceLabel, sourceLabel) ||
                 other.sourceLabel == sourceLabel) &&
             const DeepCollectionEquality().equals(other._metadata, _metadata));
@@ -679,6 +713,7 @@ class _$KitchenOrderImpl extends _KitchenOrder {
     specialInstructions,
     allergyInfo,
     const DeepCollectionEquality().hash(_assignedStations),
+    const DeepCollectionEquality().hash(_routingCategoryIds),
     sourceLabel,
     const DeepCollectionEquality().hash(_metadata),
   ]);
@@ -724,6 +759,7 @@ abstract class _KitchenOrder extends KitchenOrder {
     final String? specialInstructions,
     final String? allergyInfo,
     final List<String> assignedStations,
+    final List<String> routingCategoryIds,
     final String? sourceLabel,
     final Map<String, dynamic>? metadata,
   }) = _$KitchenOrderImpl;
@@ -781,7 +817,11 @@ abstract class _KitchenOrder extends KitchenOrder {
   @override
   String? get allergyInfo; // Station routing
   @override
-  List<String> get assignedStations; // Source
+  List<String> get assignedStations;
+
+  /// The union of its lines' routing categories.
+  @override
+  List<String> get routingCategoryIds; // Source
   @override
   String? get sourceLabel; // 'DoorDash', 'Uber Eats', 'Online', etc.
   // Metadata
@@ -809,7 +849,16 @@ mixin _$KitchenOrderItem {
   int get quantity => throw _privateConstructorUsedError;
   KitchenItemStatus get status => throw _privateConstructorUsedError; // Station
   String? get stationId => throw _privateConstructorUsedError;
-  String? get stationName => throw _privateConstructorUsedError; // Seat
+  String? get stationName => throw _privateConstructorUsedError;
+
+  /// SPEC-097, Square's model. The kitchen routing categories that claimed
+  /// this line. Several is normal — an item can be in more than one.
+  List<String> get routingCategoryIds => throw _privateConstructorUsedError;
+
+  /// Nobody claimed it. Said on the line rather than inferred from an empty
+  /// list, because a reader working it out from emptiness will one day meet
+  /// an empty list that means "not routed yet" instead, and hide the line.
+  bool get isUnclaimed => throw _privateConstructorUsedError; // Seat
   int? get seatNumber => throw _privateConstructorUsedError; // Modifiers
   List<KitchenItemModifier> get modifiers =>
       throw _privateConstructorUsedError; // Special requests
@@ -858,6 +907,8 @@ abstract class $KitchenOrderItemCopyWith<$Res> {
     KitchenItemStatus status,
     String? stationId,
     String? stationName,
+    List<String> routingCategoryIds,
+    bool isUnclaimed,
     int? seatNumber,
     List<KitchenItemModifier> modifiers,
     String? specialInstructions,
@@ -900,6 +951,8 @@ class _$KitchenOrderItemCopyWithImpl<$Res, $Val extends KitchenOrderItem>
     Object? status = null,
     Object? stationId = freezed,
     Object? stationName = freezed,
+    Object? routingCategoryIds = null,
+    Object? isUnclaimed = null,
     Object? seatNumber = freezed,
     Object? modifiers = null,
     Object? specialInstructions = freezed,
@@ -951,6 +1004,14 @@ class _$KitchenOrderItemCopyWithImpl<$Res, $Val extends KitchenOrderItem>
                 ? _value.stationName
                 : stationName // ignore: cast_nullable_to_non_nullable
                       as String?,
+            routingCategoryIds: null == routingCategoryIds
+                ? _value.routingCategoryIds
+                : routingCategoryIds // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+            isUnclaimed: null == isUnclaimed
+                ? _value.isUnclaimed
+                : isUnclaimed // ignore: cast_nullable_to_non_nullable
+                      as bool,
             seatNumber: freezed == seatNumber
                 ? _value.seatNumber
                 : seatNumber // ignore: cast_nullable_to_non_nullable
@@ -1039,6 +1100,8 @@ abstract class _$$KitchenOrderItemImplCopyWith<$Res>
     KitchenItemStatus status,
     String? stationId,
     String? stationName,
+    List<String> routingCategoryIds,
+    bool isUnclaimed,
     int? seatNumber,
     List<KitchenItemModifier> modifiers,
     String? specialInstructions,
@@ -1080,6 +1143,8 @@ class __$$KitchenOrderItemImplCopyWithImpl<$Res>
     Object? status = null,
     Object? stationId = freezed,
     Object? stationName = freezed,
+    Object? routingCategoryIds = null,
+    Object? isUnclaimed = null,
     Object? seatNumber = freezed,
     Object? modifiers = null,
     Object? specialInstructions = freezed,
@@ -1131,6 +1196,14 @@ class __$$KitchenOrderItemImplCopyWithImpl<$Res>
             ? _value.stationName
             : stationName // ignore: cast_nullable_to_non_nullable
                   as String?,
+        routingCategoryIds: null == routingCategoryIds
+            ? _value._routingCategoryIds
+            : routingCategoryIds // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+        isUnclaimed: null == isUnclaimed
+            ? _value.isUnclaimed
+            : isUnclaimed // ignore: cast_nullable_to_non_nullable
+                  as bool,
         seatNumber: freezed == seatNumber
             ? _value.seatNumber
             : seatNumber // ignore: cast_nullable_to_non_nullable
@@ -1212,6 +1285,8 @@ class _$KitchenOrderItemImpl extends _KitchenOrderItem {
     required this.status,
     this.stationId,
     this.stationName,
+    final List<String> routingCategoryIds = const [],
+    this.isUnclaimed = false,
     this.seatNumber,
     final List<KitchenItemModifier> modifiers = const [],
     this.specialInstructions,
@@ -1228,7 +1303,8 @@ class _$KitchenOrderItemImpl extends _KitchenOrderItem {
     this.isNewlyAdded = false,
     this.isModified = false,
     final Map<String, dynamic>? metadata,
-  }) : _modifiers = modifiers,
+  }) : _routingCategoryIds = routingCategoryIds,
+       _modifiers = modifiers,
        _metadata = metadata,
        super._();
 
@@ -1252,6 +1328,28 @@ class _$KitchenOrderItemImpl extends _KitchenOrderItem {
   final String? stationId;
   @override
   final String? stationName;
+
+  /// SPEC-097, Square's model. The kitchen routing categories that claimed
+  /// this line. Several is normal — an item can be in more than one.
+  final List<String> _routingCategoryIds;
+
+  /// SPEC-097, Square's model. The kitchen routing categories that claimed
+  /// this line. Several is normal — an item can be in more than one.
+  @override
+  @JsonKey()
+  List<String> get routingCategoryIds {
+    if (_routingCategoryIds is EqualUnmodifiableListView)
+      return _routingCategoryIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_routingCategoryIds);
+  }
+
+  /// Nobody claimed it. Said on the line rather than inferred from an empty
+  /// list, because a reader working it out from emptiness will one day meet
+  /// an empty list that means "not routed yet" instead, and hide the line.
+  @override
+  @JsonKey()
+  final bool isUnclaimed;
   // Seat
   @override
   final int? seatNumber;
@@ -1318,7 +1416,7 @@ class _$KitchenOrderItemImpl extends _KitchenOrderItem {
 
   @override
   String toString() {
-    return 'KitchenOrderItem(id: $id, orderId: $orderId, productId: $productId, productName: $productName, quantity: $quantity, status: $status, stationId: $stationId, stationName: $stationName, seatNumber: $seatNumber, modifiers: $modifiers, specialInstructions: $specialInstructions, cookingPreference: $cookingPreference, startedAt: $startedAt, completedAt: $completedAt, preparedBy: $preparedBy, courseNumber: $courseNumber, displayOrder: $displayOrder, is86d: $is86d, isCancelled: $isCancelled, cancelReason: $cancelReason, cancelledAt: $cancelledAt, isNewlyAdded: $isNewlyAdded, isModified: $isModified, metadata: $metadata)';
+    return 'KitchenOrderItem(id: $id, orderId: $orderId, productId: $productId, productName: $productName, quantity: $quantity, status: $status, stationId: $stationId, stationName: $stationName, routingCategoryIds: $routingCategoryIds, isUnclaimed: $isUnclaimed, seatNumber: $seatNumber, modifiers: $modifiers, specialInstructions: $specialInstructions, cookingPreference: $cookingPreference, startedAt: $startedAt, completedAt: $completedAt, preparedBy: $preparedBy, courseNumber: $courseNumber, displayOrder: $displayOrder, is86d: $is86d, isCancelled: $isCancelled, cancelReason: $cancelReason, cancelledAt: $cancelledAt, isNewlyAdded: $isNewlyAdded, isModified: $isModified, metadata: $metadata)';
   }
 
   @override
@@ -1339,6 +1437,12 @@ class _$KitchenOrderItemImpl extends _KitchenOrderItem {
                 other.stationId == stationId) &&
             (identical(other.stationName, stationName) ||
                 other.stationName == stationName) &&
+            const DeepCollectionEquality().equals(
+              other._routingCategoryIds,
+              _routingCategoryIds,
+            ) &&
+            (identical(other.isUnclaimed, isUnclaimed) ||
+                other.isUnclaimed == isUnclaimed) &&
             (identical(other.seatNumber, seatNumber) ||
                 other.seatNumber == seatNumber) &&
             const DeepCollectionEquality().equals(
@@ -1385,6 +1489,8 @@ class _$KitchenOrderItemImpl extends _KitchenOrderItem {
     status,
     stationId,
     stationName,
+    const DeepCollectionEquality().hash(_routingCategoryIds),
+    isUnclaimed,
     seatNumber,
     const DeepCollectionEquality().hash(_modifiers),
     specialInstructions,
@@ -1430,6 +1536,8 @@ abstract class _KitchenOrderItem extends KitchenOrderItem {
     required final KitchenItemStatus status,
     final String? stationId,
     final String? stationName,
+    final List<String> routingCategoryIds,
+    final bool isUnclaimed,
     final int? seatNumber,
     final List<KitchenItemModifier> modifiers,
     final String? specialInstructions,
@@ -1467,7 +1575,18 @@ abstract class _KitchenOrderItem extends KitchenOrderItem {
   @override
   String? get stationId;
   @override
-  String? get stationName; // Seat
+  String? get stationName;
+
+  /// SPEC-097, Square's model. The kitchen routing categories that claimed
+  /// this line. Several is normal — an item can be in more than one.
+  @override
+  List<String> get routingCategoryIds;
+
+  /// Nobody claimed it. Said on the line rather than inferred from an empty
+  /// list, because a reader working it out from emptiness will one day meet
+  /// an empty list that means "not routed yet" instead, and hide the line.
+  @override
+  bool get isUnclaimed; // Seat
   @override
   int? get seatNumber; // Modifiers
   @override

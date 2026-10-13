@@ -5,7 +5,8 @@ abstract class KitchenRepository {
 
   Stream<List<KitchenOrder>> watchOrders({
     required String locationId,
-    String? stationId,
+    List<String> routingCategoryIds,
+    bool isExpo,
     KitchenOrderStatus? status,
   });
 

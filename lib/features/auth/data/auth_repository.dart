@@ -81,9 +81,10 @@ class AuthRepository {
         'location_name': s.locationName,
         'staff_name': s.staffName,
         'staff_id': s.staffId,
-        'station_id': s.stationId,
-        // Persisted, or a restart quietly demotes an expo screen to prep.
+        // Persisted, or a restart quietly demotes an expo screen to prep and
+        // forgets everything it was switched on for.
         'screen_role': s.role.wire,
+        'routing_category_ids': s.routingCategoryIds,
         'subscription_plan': s.subscriptionPlan,
         'subscription_status': s.subscriptionStatus,
       };
@@ -98,8 +99,10 @@ class AuthRepository {
       locationName: m['location_name'] as String,
       staffName: m['staff_name'] as String,
       staffId: m['staff_id'] as String,
-      stationId: m['station_id'] as String?,
       role: KdsScreenRole.fromWire(m['screen_role'] as String?),
+      routingCategoryIds: ((m['routing_category_ids'] as List?) ?? const [])
+          .map((e) => '$e')
+          .toList(),
       subscriptionPlan: m['subscription_plan'] as String? ?? '',
       subscriptionStatus: m['subscription_status'] as String? ?? '',
     );
