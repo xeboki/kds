@@ -29,14 +29,6 @@ final kitchenOrdersProvider = StreamProvider<List<KitchenOrder>>((ref) {
   );
 });
 
-// ── Stations ──────────────────────────────────────────────────────────────────
-
-final kitchenStationsProvider = FutureProvider<List<KitchenStation>>((ref) async {
-  final session = ref.watch(sessionProvider);
-  if (session == null) return [];
-  final repo = ref.watch(kitchenRepositoryProvider);
-  return repo.getStations(session.locationId);
-});
 
 // ── Bumped / recalled orders ──────────────────────────────────────────────────
 
