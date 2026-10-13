@@ -26,12 +26,12 @@ class KitchenRepositoryFirestore implements KitchenRepository {
     KitchenOrderStatus? status,
   }) {
     var query = _orders
-        .where('locationId', isEqualTo: locationId)
+        .where('location_id', isEqualTo: locationId)
         .where('status', whereIn: KitchenOrderStatus.values
             .where((s) => s.isActive)
             .map((s) => s.name)
             .toList())
-        .orderBy('orderTime');
+        .orderBy('order_time');
 
     return query.snapshots().map((snap) {
       var orders = snap.docs
@@ -64,9 +64,9 @@ class KitchenRepositoryFirestore implements KitchenRepository {
     int limit = 20,
   }) async {
     final snap = await _orders
-        .where('locationId', isEqualTo: locationId)
+        .where('location_id', isEqualTo: locationId)
         .where('status', isEqualTo: KitchenOrderStatus.bumped.name)
-        .orderBy('bumpedAt', descending: true)
+        .orderBy('bumped_at', descending: true)
         .limit(limit)
         .get();
     return snap.docs
@@ -201,9 +201,9 @@ class KitchenRepositoryFirestore implements KitchenRepository {
   @override
   Future<List<KitchenStation>> getStations(String locationId) async {
     final snap = await _stations
-        .where('locationId', isEqualTo: locationId)
-        .where('isActive', isEqualTo: true)
-        .orderBy('displayOrder')
+        .where('location_id', isEqualTo: locationId)
+        .where('is_active', isEqualTo: true)
+        .orderBy('display_order')
         .get();
     return snap.docs
         .map((d) => KitchenStation.fromJson({...d.data(), 'id': d.id}))

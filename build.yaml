@@ -1,0 +1,43 @@
+# Build configuration for code generation.
+#
+# SPEC-097 097-A. This file did not exist, and its absence is why the Kitchen
+# Display has never been able to read a ticket.
+#
+# Without it `json_serializable` defaults to **camelCase** keys, so the
+# generated models parsed `locationId`, `stationId`, `orderTime` and
+# `isActive`. Every writer stores snake_case — the till (`Pro/build.yaml` has
+# had `field_rename: snake` all along), the API when an online order is paid,
+# and Manager when a station is saved.
+#
+# A Firestore `.where()` on a field that does not exist is **not an error, it
+# is an empty list**, which this app renders as "No Active Orders". So the
+# board looked calm and correct while matching nothing, and it would have
+# looked identical on the day it started working.
+#
+# Kept deliberately identical to `Pro/build.yaml`'s `json_serializable` block,
+# because the two apps read and write the same two collections and any
+# divergence here is invisible until a kitchen is waiting on a ticket.
+#
+# `riverpod_generator` is absent on purpose: this app declares its providers by
+# hand (see `pubspec.yaml`), so there is nothing for it to generate.
+targets:
+  $default:
+    builders:
+      freezed:
+        generate_for:
+          - lib/**/*.dart
+        options:
+          generate_for_file: true
+
+      json_serializable:
+        generate_for:
+          - lib/**/*.dart
+        options:
+          explicit_to_json: true
+          field_rename: snake
+          any_map: false
+          checked: true
+          create_factory: true
+          create_to_json: true
+          disallow_unrecognized_keys: false
+          ignore_unannotated: false

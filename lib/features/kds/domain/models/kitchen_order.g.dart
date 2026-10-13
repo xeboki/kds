@@ -6,85 +6,146 @@ part of 'kitchen_order.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$KitchenOrderImpl _$$KitchenOrderImplFromJson(Map<String, dynamic> json) =>
-    _$KitchenOrderImpl(
-      id: json['id'] as String,
-      orderId: json['orderId'] as String,
-      locationId: json['locationId'] as String,
-      tableNumber: json['tableNumber'] as String?,
-      tableSectionName: json['tableSectionName'] as String?,
-      guestCount: (json['guestCount'] as num?)?.toInt(),
-      seatCount: (json['seatCount'] as num?)?.toInt(),
-      orderNumber: json['orderNumber'] as String,
-      orderType: $enumDecode(_$KitchenOrderTypeEnumMap, json['orderType']),
-      priority: $enumDecode(_$KitchenOrderPriorityEnumMap, json['priority']),
-      status: $enumDecode(_$KitchenOrderStatusEnumMap, json['status']),
-      items:
-          (json['items'] as List<dynamic>?)
-              ?.map((e) => KitchenOrderItem.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      serverId: json['serverId'] as String?,
-      serverName: json['serverName'] as String?,
-      preparedBy: json['preparedBy'] as String?,
-      orderTime: DateTime.parse(json['orderTime'] as String),
-      startedAt: json['startedAt'] == null
-          ? null
-          : DateTime.parse(json['startedAt'] as String),
-      readyAt: json['readyAt'] == null
-          ? null
-          : DateTime.parse(json['readyAt'] as String),
-      servedAt: json['servedAt'] == null
-          ? null
-          : DateTime.parse(json['servedAt'] as String),
-      bumpedAt: json['bumpedAt'] == null
-          ? null
-          : DateTime.parse(json['bumpedAt'] as String),
-      recalledAt: json['recalledAt'] == null
-          ? null
-          : DateTime.parse(json['recalledAt'] as String),
-      scheduledFor: json['scheduledFor'] == null
-          ? null
-          : DateTime.parse(json['scheduledFor'] as String),
-      specialInstructions: json['specialInstructions'] as String?,
-      allergyInfo: json['allergyInfo'] as String?,
-      assignedStations:
-          (json['assignedStations'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          const [],
-      sourceLabel: json['sourceLabel'] as String?,
-      metadata: json['metadata'] as Map<String, dynamic>?,
+_$KitchenOrderImpl _$$KitchenOrderImplFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  r'_$KitchenOrderImpl',
+  json,
+  ($checkedConvert) {
+    final val = _$KitchenOrderImpl(
+      id: $checkedConvert('id', (v) => v as String),
+      orderId: $checkedConvert('order_id', (v) => v as String),
+      locationId: $checkedConvert('location_id', (v) => v as String),
+      tableNumber: $checkedConvert('table_number', (v) => v as String?),
+      tableSectionName: $checkedConvert(
+        'table_section_name',
+        (v) => v as String?,
+      ),
+      guestCount: $checkedConvert('guest_count', (v) => (v as num?)?.toInt()),
+      seatCount: $checkedConvert('seat_count', (v) => (v as num?)?.toInt()),
+      orderNumber: $checkedConvert('order_number', (v) => v as String),
+      orderType: $checkedConvert(
+        'order_type',
+        (v) => $enumDecode(_$KitchenOrderTypeEnumMap, v),
+      ),
+      priority: $checkedConvert(
+        'priority',
+        (v) => $enumDecode(_$KitchenOrderPriorityEnumMap, v),
+      ),
+      status: $checkedConvert(
+        'status',
+        (v) => $enumDecode(_$KitchenOrderStatusEnumMap, v),
+      ),
+      items: $checkedConvert(
+        'items',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) => KitchenOrderItem.fromJson(e as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
+      ),
+      serverId: $checkedConvert('server_id', (v) => v as String?),
+      serverName: $checkedConvert('server_name', (v) => v as String?),
+      preparedBy: $checkedConvert('prepared_by', (v) => v as String?),
+      orderTime: $checkedConvert(
+        'order_time',
+        (v) => DateTime.parse(v as String),
+      ),
+      startedAt: $checkedConvert(
+        'started_at',
+        (v) => v == null ? null : DateTime.parse(v as String),
+      ),
+      readyAt: $checkedConvert(
+        'ready_at',
+        (v) => v == null ? null : DateTime.parse(v as String),
+      ),
+      servedAt: $checkedConvert(
+        'served_at',
+        (v) => v == null ? null : DateTime.parse(v as String),
+      ),
+      bumpedAt: $checkedConvert(
+        'bumped_at',
+        (v) => v == null ? null : DateTime.parse(v as String),
+      ),
+      recalledAt: $checkedConvert(
+        'recalled_at',
+        (v) => v == null ? null : DateTime.parse(v as String),
+      ),
+      scheduledFor: $checkedConvert(
+        'scheduled_for',
+        (v) => v == null ? null : DateTime.parse(v as String),
+      ),
+      specialInstructions: $checkedConvert(
+        'special_instructions',
+        (v) => v as String?,
+      ),
+      allergyInfo: $checkedConvert('allergy_info', (v) => v as String?),
+      assignedStations: $checkedConvert(
+        'assigned_stations',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      sourceLabel: $checkedConvert('source_label', (v) => v as String?),
+      metadata: $checkedConvert('metadata', (v) => v as Map<String, dynamic>?),
     );
+    return val;
+  },
+  fieldKeyMap: const {
+    'orderId': 'order_id',
+    'locationId': 'location_id',
+    'tableNumber': 'table_number',
+    'tableSectionName': 'table_section_name',
+    'guestCount': 'guest_count',
+    'seatCount': 'seat_count',
+    'orderNumber': 'order_number',
+    'orderType': 'order_type',
+    'serverId': 'server_id',
+    'serverName': 'server_name',
+    'preparedBy': 'prepared_by',
+    'orderTime': 'order_time',
+    'startedAt': 'started_at',
+    'readyAt': 'ready_at',
+    'servedAt': 'served_at',
+    'bumpedAt': 'bumped_at',
+    'recalledAt': 'recalled_at',
+    'scheduledFor': 'scheduled_for',
+    'specialInstructions': 'special_instructions',
+    'allergyInfo': 'allergy_info',
+    'assignedStations': 'assigned_stations',
+    'sourceLabel': 'source_label',
+  },
+);
 
 Map<String, dynamic> _$$KitchenOrderImplToJson(_$KitchenOrderImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'orderId': instance.orderId,
-      'locationId': instance.locationId,
-      'tableNumber': instance.tableNumber,
-      'tableSectionName': instance.tableSectionName,
-      'guestCount': instance.guestCount,
-      'seatCount': instance.seatCount,
-      'orderNumber': instance.orderNumber,
-      'orderType': _$KitchenOrderTypeEnumMap[instance.orderType]!,
+      'order_id': instance.orderId,
+      'location_id': instance.locationId,
+      'table_number': instance.tableNumber,
+      'table_section_name': instance.tableSectionName,
+      'guest_count': instance.guestCount,
+      'seat_count': instance.seatCount,
+      'order_number': instance.orderNumber,
+      'order_type': _$KitchenOrderTypeEnumMap[instance.orderType]!,
       'priority': _$KitchenOrderPriorityEnumMap[instance.priority]!,
       'status': _$KitchenOrderStatusEnumMap[instance.status]!,
-      'items': instance.items,
-      'serverId': instance.serverId,
-      'serverName': instance.serverName,
-      'preparedBy': instance.preparedBy,
-      'orderTime': instance.orderTime.toIso8601String(),
-      'startedAt': instance.startedAt?.toIso8601String(),
-      'readyAt': instance.readyAt?.toIso8601String(),
-      'servedAt': instance.servedAt?.toIso8601String(),
-      'bumpedAt': instance.bumpedAt?.toIso8601String(),
-      'recalledAt': instance.recalledAt?.toIso8601String(),
-      'scheduledFor': instance.scheduledFor?.toIso8601String(),
-      'specialInstructions': instance.specialInstructions,
-      'allergyInfo': instance.allergyInfo,
-      'assignedStations': instance.assignedStations,
-      'sourceLabel': instance.sourceLabel,
+      'items': instance.items.map((e) => e.toJson()).toList(),
+      'server_id': instance.serverId,
+      'server_name': instance.serverName,
+      'prepared_by': instance.preparedBy,
+      'order_time': instance.orderTime.toIso8601String(),
+      'started_at': instance.startedAt?.toIso8601String(),
+      'ready_at': instance.readyAt?.toIso8601String(),
+      'served_at': instance.servedAt?.toIso8601String(),
+      'bumped_at': instance.bumpedAt?.toIso8601String(),
+      'recalled_at': instance.recalledAt?.toIso8601String(),
+      'scheduled_for': instance.scheduledFor?.toIso8601String(),
+      'special_instructions': instance.specialInstructions,
+      'allergy_info': instance.allergyInfo,
+      'assigned_stations': instance.assignedStations,
+      'source_label': instance.sourceLabel,
       'metadata': instance.metadata,
     };
 
@@ -114,69 +175,123 @@ const _$KitchenOrderStatusEnumMap = {
 
 _$KitchenOrderItemImpl _$$KitchenOrderItemImplFromJson(
   Map<String, dynamic> json,
-) => _$KitchenOrderItemImpl(
-  id: json['id'] as String,
-  orderId: json['orderId'] as String,
-  productId: json['productId'] as String,
-  productName: json['productName'] as String,
-  quantity: (json['quantity'] as num).toInt(),
-  status: $enumDecode(_$KitchenItemStatusEnumMap, json['status']),
-  stationId: json['stationId'] as String?,
-  stationName: json['stationName'] as String?,
-  seatNumber: (json['seatNumber'] as num?)?.toInt(),
-  modifiers:
-      (json['modifiers'] as List<dynamic>?)
-          ?.map((e) => KitchenItemModifier.fromJson(e as Map<String, dynamic>))
-          .toList() ??
-      const [],
-  specialInstructions: json['specialInstructions'] as String?,
-  cookingPreference: json['cookingPreference'] as String?,
-  startedAt: json['startedAt'] == null
-      ? null
-      : DateTime.parse(json['startedAt'] as String),
-  completedAt: json['completedAt'] == null
-      ? null
-      : DateTime.parse(json['completedAt'] as String),
-  preparedBy: json['preparedBy'] as String?,
-  courseNumber: (json['courseNumber'] as num?)?.toInt(),
-  displayOrder: (json['displayOrder'] as num?)?.toInt(),
-  is86d: json['is86d'] as bool? ?? false,
-  isCancelled: json['isCancelled'] as bool? ?? false,
-  cancelReason: json['cancelReason'] as String?,
-  cancelledAt: json['cancelledAt'] == null
-      ? null
-      : DateTime.parse(json['cancelledAt'] as String),
-  isNewlyAdded: json['isNewlyAdded'] as bool? ?? false,
-  isModified: json['isModified'] as bool? ?? false,
-  metadata: json['metadata'] as Map<String, dynamic>?,
+) => $checkedCreate(
+  r'_$KitchenOrderItemImpl',
+  json,
+  ($checkedConvert) {
+    final val = _$KitchenOrderItemImpl(
+      id: $checkedConvert('id', (v) => v as String),
+      orderId: $checkedConvert('order_id', (v) => v as String),
+      productId: $checkedConvert('product_id', (v) => v as String),
+      productName: $checkedConvert('product_name', (v) => v as String),
+      quantity: $checkedConvert('quantity', (v) => (v as num).toInt()),
+      status: $checkedConvert(
+        'status',
+        (v) => $enumDecode(_$KitchenItemStatusEnumMap, v),
+      ),
+      stationId: $checkedConvert('station_id', (v) => v as String?),
+      stationName: $checkedConvert('station_name', (v) => v as String?),
+      seatNumber: $checkedConvert('seat_number', (v) => (v as num?)?.toInt()),
+      modifiers: $checkedConvert(
+        'modifiers',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) =>
+                      KitchenItemModifier.fromJson(e as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
+      ),
+      specialInstructions: $checkedConvert(
+        'special_instructions',
+        (v) => v as String?,
+      ),
+      cookingPreference: $checkedConvert(
+        'cooking_preference',
+        (v) => v as String?,
+      ),
+      startedAt: $checkedConvert(
+        'started_at',
+        (v) => v == null ? null : DateTime.parse(v as String),
+      ),
+      completedAt: $checkedConvert(
+        'completed_at',
+        (v) => v == null ? null : DateTime.parse(v as String),
+      ),
+      preparedBy: $checkedConvert('prepared_by', (v) => v as String?),
+      courseNumber: $checkedConvert(
+        'course_number',
+        (v) => (v as num?)?.toInt(),
+      ),
+      displayOrder: $checkedConvert(
+        'display_order',
+        (v) => (v as num?)?.toInt(),
+      ),
+      is86d: $checkedConvert('is86d', (v) => v as bool? ?? false),
+      isCancelled: $checkedConvert('is_cancelled', (v) => v as bool? ?? false),
+      cancelReason: $checkedConvert('cancel_reason', (v) => v as String?),
+      cancelledAt: $checkedConvert(
+        'cancelled_at',
+        (v) => v == null ? null : DateTime.parse(v as String),
+      ),
+      isNewlyAdded: $checkedConvert(
+        'is_newly_added',
+        (v) => v as bool? ?? false,
+      ),
+      isModified: $checkedConvert('is_modified', (v) => v as bool? ?? false),
+      metadata: $checkedConvert('metadata', (v) => v as Map<String, dynamic>?),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'orderId': 'order_id',
+    'productId': 'product_id',
+    'productName': 'product_name',
+    'stationId': 'station_id',
+    'stationName': 'station_name',
+    'seatNumber': 'seat_number',
+    'specialInstructions': 'special_instructions',
+    'cookingPreference': 'cooking_preference',
+    'startedAt': 'started_at',
+    'completedAt': 'completed_at',
+    'preparedBy': 'prepared_by',
+    'courseNumber': 'course_number',
+    'displayOrder': 'display_order',
+    'isCancelled': 'is_cancelled',
+    'cancelReason': 'cancel_reason',
+    'cancelledAt': 'cancelled_at',
+    'isNewlyAdded': 'is_newly_added',
+    'isModified': 'is_modified',
+  },
 );
 
 Map<String, dynamic> _$$KitchenOrderItemImplToJson(
   _$KitchenOrderItemImpl instance,
 ) => <String, dynamic>{
   'id': instance.id,
-  'orderId': instance.orderId,
-  'productId': instance.productId,
-  'productName': instance.productName,
+  'order_id': instance.orderId,
+  'product_id': instance.productId,
+  'product_name': instance.productName,
   'quantity': instance.quantity,
   'status': _$KitchenItemStatusEnumMap[instance.status]!,
-  'stationId': instance.stationId,
-  'stationName': instance.stationName,
-  'seatNumber': instance.seatNumber,
-  'modifiers': instance.modifiers,
-  'specialInstructions': instance.specialInstructions,
-  'cookingPreference': instance.cookingPreference,
-  'startedAt': instance.startedAt?.toIso8601String(),
-  'completedAt': instance.completedAt?.toIso8601String(),
-  'preparedBy': instance.preparedBy,
-  'courseNumber': instance.courseNumber,
-  'displayOrder': instance.displayOrder,
+  'station_id': instance.stationId,
+  'station_name': instance.stationName,
+  'seat_number': instance.seatNumber,
+  'modifiers': instance.modifiers.map((e) => e.toJson()).toList(),
+  'special_instructions': instance.specialInstructions,
+  'cooking_preference': instance.cookingPreference,
+  'started_at': instance.startedAt?.toIso8601String(),
+  'completed_at': instance.completedAt?.toIso8601String(),
+  'prepared_by': instance.preparedBy,
+  'course_number': instance.courseNumber,
+  'display_order': instance.displayOrder,
   'is86d': instance.is86d,
-  'isCancelled': instance.isCancelled,
-  'cancelReason': instance.cancelReason,
-  'cancelledAt': instance.cancelledAt?.toIso8601String(),
-  'isNewlyAdded': instance.isNewlyAdded,
-  'isModified': instance.isModified,
+  'is_cancelled': instance.isCancelled,
+  'cancel_reason': instance.cancelReason,
+  'cancelled_at': instance.cancelledAt?.toIso8601String(),
+  'is_newly_added': instance.isNewlyAdded,
+  'is_modified': instance.isModified,
   'metadata': instance.metadata,
 };
 
@@ -190,12 +305,18 @@ const _$KitchenItemStatusEnumMap = {
 
 _$KitchenItemModifierImpl _$$KitchenItemModifierImplFromJson(
   Map<String, dynamic> json,
-) => _$KitchenItemModifierImpl(
-  id: json['id'] as String,
-  name: json['name'] as String,
-  action: $enumDecode(_$ModifierActionEnumMap, json['action']),
-  notes: json['notes'] as String?,
-);
+) => $checkedCreate(r'_$KitchenItemModifierImpl', json, ($checkedConvert) {
+  final val = _$KitchenItemModifierImpl(
+    id: $checkedConvert('id', (v) => v as String),
+    name: $checkedConvert('name', (v) => v as String),
+    action: $checkedConvert(
+      'action',
+      (v) => $enumDecode(_$ModifierActionEnumMap, v),
+    ),
+    notes: $checkedConvert('notes', (v) => v as String?),
+  );
+  return val;
+});
 
 Map<String, dynamic> _$$KitchenItemModifierImplToJson(
   _$KitchenItemModifierImpl instance,
@@ -214,67 +335,122 @@ const _$ModifierActionEnumMap = {
   ModifierAction.light: 'light',
 };
 
-_$KitchenStationImpl _$$KitchenStationImplFromJson(Map<String, dynamic> json) =>
-    _$KitchenStationImpl(
-      id: json['id'] as String,
-      locationId: json['locationId'] as String,
-      name: json['name'] as String,
-      type: $enumDecode(_$KitchenStationTypeEnumMap, json['type']),
-      description: json['description'] as String?,
-      color: json['color'] as String?,
-      displayOrder: (json['displayOrder'] as num?)?.toInt(),
-      assignedStaffIds: (json['assignedStaffIds'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList(),
-      currentStaffId: json['currentStaffId'] as String?,
-      currentStaffName: json['currentStaffName'] as String?,
-      isActive: json['isActive'] as bool? ?? true,
-      isPrinterEnabled: json['isPrinterEnabled'] as bool? ?? false,
-      printerName: json['printerName'] as String?,
-      categoryIds:
-          (json['categoryIds'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          const [],
-      urgentThresholdMins: (json['urgentThresholdMins'] as num?)?.toInt() ?? 8,
-      veryUrgentThresholdMins:
-          (json['veryUrgentThresholdMins'] as num?)?.toInt() ?? 15,
-      autoSoundEnabled: json['autoSoundEnabled'] as bool? ?? false,
-      autoBumpEnabled: json['autoBumpEnabled'] as bool? ?? false,
-      autoBumpAfterMins: (json['autoBumpAfterMins'] as num?)?.toInt(),
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
-      metadata: json['metadata'] as Map<String, dynamic>?,
+_$KitchenStationImpl _$$KitchenStationImplFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  r'_$KitchenStationImpl',
+  json,
+  ($checkedConvert) {
+    final val = _$KitchenStationImpl(
+      id: $checkedConvert('id', (v) => v as String),
+      locationId: $checkedConvert('location_id', (v) => v as String),
+      name: $checkedConvert('name', (v) => v as String),
+      type: $checkedConvert(
+        'type',
+        (v) => $enumDecode(_$KitchenStationTypeEnumMap, v),
+      ),
+      description: $checkedConvert('description', (v) => v as String?),
+      color: $checkedConvert('color', (v) => v as String?),
+      displayOrder: $checkedConvert(
+        'display_order',
+        (v) => (v as num?)?.toInt(),
+      ),
+      assignedStaffIds: $checkedConvert(
+        'assigned_staff_ids',
+        (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+      ),
+      currentStaffId: $checkedConvert('current_staff_id', (v) => v as String?),
+      currentStaffName: $checkedConvert(
+        'current_staff_name',
+        (v) => v as String?,
+      ),
+      isActive: $checkedConvert('is_active', (v) => v as bool? ?? true),
+      isPrinterEnabled: $checkedConvert(
+        'is_printer_enabled',
+        (v) => v as bool? ?? false,
+      ),
+      printerName: $checkedConvert('printer_name', (v) => v as String?),
+      categoryIds: $checkedConvert(
+        'category_ids',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      urgentThresholdMins: $checkedConvert(
+        'urgent_threshold_mins',
+        (v) => (v as num?)?.toInt() ?? 8,
+      ),
+      veryUrgentThresholdMins: $checkedConvert(
+        'very_urgent_threshold_mins',
+        (v) => (v as num?)?.toInt() ?? 15,
+      ),
+      autoSoundEnabled: $checkedConvert(
+        'auto_sound_enabled',
+        (v) => v as bool? ?? false,
+      ),
+      autoBumpEnabled: $checkedConvert(
+        'auto_bump_enabled',
+        (v) => v as bool? ?? false,
+      ),
+      autoBumpAfterMins: $checkedConvert(
+        'auto_bump_after_mins',
+        (v) => (v as num?)?.toInt(),
+      ),
+      createdAt: $checkedConvert(
+        'created_at',
+        (v) => v == null ? null : DateTime.parse(v as String),
+      ),
+      updatedAt: $checkedConvert(
+        'updated_at',
+        (v) => v == null ? null : DateTime.parse(v as String),
+      ),
+      metadata: $checkedConvert('metadata', (v) => v as Map<String, dynamic>?),
     );
+    return val;
+  },
+  fieldKeyMap: const {
+    'locationId': 'location_id',
+    'displayOrder': 'display_order',
+    'assignedStaffIds': 'assigned_staff_ids',
+    'currentStaffId': 'current_staff_id',
+    'currentStaffName': 'current_staff_name',
+    'isActive': 'is_active',
+    'isPrinterEnabled': 'is_printer_enabled',
+    'printerName': 'printer_name',
+    'categoryIds': 'category_ids',
+    'urgentThresholdMins': 'urgent_threshold_mins',
+    'veryUrgentThresholdMins': 'very_urgent_threshold_mins',
+    'autoSoundEnabled': 'auto_sound_enabled',
+    'autoBumpEnabled': 'auto_bump_enabled',
+    'autoBumpAfterMins': 'auto_bump_after_mins',
+    'createdAt': 'created_at',
+    'updatedAt': 'updated_at',
+  },
+);
 
 Map<String, dynamic> _$$KitchenStationImplToJson(
   _$KitchenStationImpl instance,
 ) => <String, dynamic>{
   'id': instance.id,
-  'locationId': instance.locationId,
+  'location_id': instance.locationId,
   'name': instance.name,
   'type': _$KitchenStationTypeEnumMap[instance.type]!,
   'description': instance.description,
   'color': instance.color,
-  'displayOrder': instance.displayOrder,
-  'assignedStaffIds': instance.assignedStaffIds,
-  'currentStaffId': instance.currentStaffId,
-  'currentStaffName': instance.currentStaffName,
-  'isActive': instance.isActive,
-  'isPrinterEnabled': instance.isPrinterEnabled,
-  'printerName': instance.printerName,
-  'categoryIds': instance.categoryIds,
-  'urgentThresholdMins': instance.urgentThresholdMins,
-  'veryUrgentThresholdMins': instance.veryUrgentThresholdMins,
-  'autoSoundEnabled': instance.autoSoundEnabled,
-  'autoBumpEnabled': instance.autoBumpEnabled,
-  'autoBumpAfterMins': instance.autoBumpAfterMins,
-  'createdAt': instance.createdAt?.toIso8601String(),
-  'updatedAt': instance.updatedAt?.toIso8601String(),
+  'display_order': instance.displayOrder,
+  'assigned_staff_ids': instance.assignedStaffIds,
+  'current_staff_id': instance.currentStaffId,
+  'current_staff_name': instance.currentStaffName,
+  'is_active': instance.isActive,
+  'is_printer_enabled': instance.isPrinterEnabled,
+  'printer_name': instance.printerName,
+  'category_ids': instance.categoryIds,
+  'urgent_threshold_mins': instance.urgentThresholdMins,
+  'very_urgent_threshold_mins': instance.veryUrgentThresholdMins,
+  'auto_sound_enabled': instance.autoSoundEnabled,
+  'auto_bump_enabled': instance.autoBumpEnabled,
+  'auto_bump_after_mins': instance.autoBumpAfterMins,
+  'created_at': instance.createdAt?.toIso8601String(),
+  'updated_at': instance.updatedAt?.toIso8601String(),
   'metadata': instance.metadata,
 };
 
