@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/kds_theme.dart';
 import '../../domain/models/kitchen_order.dart';
+import '../../domain/repositories/kitchen_repository.dart';
 import '../providers/kitchen_providers.dart';
 import 'item_tile.dart';
 import 'timer_badge.dart';
@@ -106,7 +107,10 @@ class _CardHeader extends StatelessWidget {
   const _CardHeader({required this.order, required this.repo});
 
   final KitchenOrder order;
-  final dynamic repo;
+  // Typed, not `dynamic`: the analyzer cannot see a missing member on a
+  // dynamic receiver, which is how a removed field became a runtime
+  // NoSuchMethodError and a blank board (SPEC-097).
+  final KitchenRepository repo;
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +199,10 @@ class _TypeChip extends StatelessWidget {
 class _PriorityIcon extends StatelessWidget {
   const _PriorityIcon({required this.order, required this.repo});
   final KitchenOrder order;
-  final dynamic repo;
+  // Typed, not `dynamic`: the analyzer cannot see a missing member on a
+  // dynamic receiver, which is how a removed field became a runtime
+  // NoSuchMethodError and a blank board (SPEC-097).
+  final KitchenRepository repo;
 
   @override
   Widget build(BuildContext context) {
@@ -234,7 +241,10 @@ class _ItemsBody extends StatelessWidget {
     this.isExpo = false,
   });
   final KitchenOrder order;
-  final dynamic repo;
+  // Typed, not `dynamic`: the analyzer cannot see a missing member on a
+  // dynamic receiver, which is how a removed field became a runtime
+  // NoSuchMethodError and a blank board (SPEC-097).
+  final KitchenRepository repo;
   final List<String> routingCategoryIds;
   final bool isExpo;
 
@@ -341,7 +351,10 @@ class _ItemsBody extends StatelessWidget {
 class _CardFooter extends StatelessWidget {
   const _CardFooter({required this.order, required this.repo});
   final KitchenOrder order;
-  final dynamic repo;
+  // Typed, not `dynamic`: the analyzer cannot see a missing member on a
+  // dynamic receiver, which is how a removed field became a runtime
+  // NoSuchMethodError and a blank board (SPEC-097).
+  final KitchenRepository repo;
 
   @override
   Widget build(BuildContext context) {

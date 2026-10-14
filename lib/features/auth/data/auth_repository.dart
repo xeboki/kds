@@ -8,6 +8,13 @@ import '../../kds/domain/models/screen_role.dart';
 
 const _kSessionKey = 'kds_session_v1';
 
+/// The id of the `kds_screens` record this device registered as.
+///
+/// SPEC-097. Stored separately from the session because it outlives it: a
+/// screen stays the same screen across staff logins, which is the whole point
+/// of registering the device rather than the person.
+const _kScreenIdKey = 'kds_screen_id_v1';
+
 /// Handles KDS authentication against the POS API.
 /// After a successful login the session (JWT + Firebase config) is persisted
 /// so the kitchen tablet auto-reconnects on restart without staff interaction.
@@ -23,7 +30,8 @@ class AuthRepository {
     required String password,
   }) async {
     final body = await _api.login(email: email, password: password);
-    final session = KdsSession.fromLoginResponse(body);
+    var session = KdsSession.fromLoginResponse(body);
+    session = await _applyScreenConfig(session);
     await _persistSession(session);
     await FirebaseInitService().initializeFromAuthResponse(
       config: session.firebaseConfig,
@@ -40,14 +48,59 @@ class AuthRepository {
       final raw = prefs.getString(_kSessionKey);
       if (raw == null) return null;
       final map = jsonDecode(raw) as Map<String, dynamic>;
-      final session = _sessionFromMap(map);
+      var session = _sessionFromMap(map);
       await FirebaseInitService().initializeFromAuthResponse(
         config: session.firebaseConfig,
         customToken: session.firebaseToken,
       );
+      // Re-read on every start: the back office may have changed what this
+      // screen shows, or taken it offline, since it was last switched on.
+      session = await _applyScreenConfig(session);
+      await _persistSession(session);
       return session;
     } catch (_) {
       return null;
+    }
+  }
+
+  /// The id of the screen this device is registered as, if it is.
+  Future<String?> registeredScreenId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final id = prefs.getString(_kScreenIdKey);
+    return (id == null || id.isEmpty) ? null : id;
+  }
+
+  Future<void> saveRegisteredScreenId(String screenId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kScreenIdKey, screenId);
+  }
+
+  /// Fill in what this screen is set up to show.
+  ///
+  /// A device that has not been registered keeps the session as it is — an
+  /// unregistered screen still works, it just shows everything unclaimed and
+  /// nothing claimed, which is what it did before registration existed.
+  ///
+  /// A screen taken offline in the back office is left alone here rather than
+  /// pretended about; the board surfaces the refusal.
+  Future<KdsSession> _applyScreenConfig(KdsSession session) async {
+    final screenId = await registeredScreenId();
+    if (screenId == null) return session;
+    try {
+      final config = await _api.getScreenConfig(
+        jwt: session.jwtToken,
+        screenId: screenId,
+      );
+      return session.copyWith(
+        role: KdsScreenRole.fromWire(config['role'] as String?),
+        routingCategoryIds: ((config['routing_category_ids'] as List?) ?? const [])
+            .map((e) => '$e')
+            .toList(),
+      );
+    } catch (_) {
+      // A config read that fails must not stop a kitchen working. The screen
+      // falls back to what it had, which errs towards showing more.
+      return session;
     }
   }
 

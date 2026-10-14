@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/kds_theme.dart';
+import '../../data/auth_repository.dart';
 import '../providers/auth_providers.dart';
+import '../widgets/screen_setup_sheet.dart';
 
 /// KDS login screen — shown only on first launch or after logout.
 /// Staff enter their POS credentials; Firebase config is returned by the API
@@ -21,6 +23,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _loading = false;
   bool _obscure = true;
   String? _error;
+
+  /// Whether this device has registered as a screen. Read once on open, and
+  /// again after a setup, so the button can say which it is.
+  bool _registered = false;
 
   @override
   void dispose() {
@@ -153,6 +159,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 fontSize: 16, fontWeight: FontWeight.w600)),
                   ),
                 ),
+
+                // SPEC-097. A screen registers like a till. Shown here rather
+                // than hidden in settings because it is the first thing a new
+                // tablet needs, and because a screen that is not set up shows
+                // only unclaimed work — which looks like a quiet kitchen
+                // rather than a screen nobody has told what to show.
+                const SizedBox(height: 20),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: _loading ? null : _setUpThisScreen,
+                    icon: Icon(
+                      _registered ? Icons.check_circle_outline : Icons.tv,
+                      size: 16,
+                      color: colors.textSecondary,
+                    ),
+                    label: Text(
+                      _registered
+                          ? 'This screen is set up — change it'
+                          : 'Set up this screen',
+                      style: TextStyle(
+                          fontSize: 13, color: colors.textSecondary),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -165,6 +195,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   /// those differ between light and dark. The `colors.textSecondary` /
   /// `colors.onDisabled` that stood here were written for a screen that was
   /// always dark; on the till's light ground they are invisible.
+  Future<void> _refreshRegistration() async {
+    final id = await AuthRepository().registeredScreenId();
+    if (mounted) setState(() => _registered = id != null);
+  }
+
+  Future<void> _setUpThisScreen() async {
+    final done = await showScreenSetupSheet(context);
+    await _refreshRegistration();
+    if (done && mounted) {
+      setState(() => _error = null);
+    }
+  }
+
   InputDecoration _inputDec(
       BuildContext context, String label, IconData icon) {
     final colors = context.appColors;

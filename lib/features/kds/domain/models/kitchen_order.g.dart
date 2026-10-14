@@ -26,7 +26,9 @@ _$KitchenOrderImpl _$$KitchenOrderImplFromJson(
       orderNumber: $checkedConvert('order_number', (v) => v as String),
       orderType: $checkedConvert(
         'order_type',
-        (v) => $enumDecode(_$KitchenOrderTypeEnumMap, v),
+        (v) =>
+            $enumDecodeNullable(_$KitchenOrderTypeEnumMap, v) ??
+            KitchenOrderType.dineIn,
       ),
       priority: $checkedConvert(
         'priority',

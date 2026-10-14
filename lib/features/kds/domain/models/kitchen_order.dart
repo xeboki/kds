@@ -20,7 +20,19 @@ class KitchenOrder with _$KitchenOrder {
 
     // Order info
     required String orderNumber,
-    required KitchenOrderType orderType,
+    /// SPEC-097. Defaulted, not required.
+    ///
+    /// Neither writer emits a top-level `order_type`: the till's own
+    /// `KitchenOrder` has no such field at all, and the API records it only
+    /// inside `metadata`. With `checked: true` a missing required field
+    /// **throws**, so every real ticket crashed this app — the board rendered
+    /// blank and threw on every frame rather than showing an empty state.
+    ///
+    /// Dine-in is the right default for a legacy document: the till only
+    /// sends dine-in orders to the kitchen at all (`_sendToKitchen` returns
+    /// early for anything else). A kitchen ticket is short-lived, so the few
+    /// older online ones age out within a service.
+    @Default(KitchenOrderType.dineIn) KitchenOrderType orderType,
     required KitchenOrderPriority priority,
     required KitchenOrderStatus status,
 

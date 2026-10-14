@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/kds_theme.dart';
 import '../../domain/models/kitchen_order.dart';
+import '../../../auth/domain/models/kds_session.dart';
 import '../providers/kitchen_providers.dart';
 import '../widgets/order_card.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -151,7 +152,12 @@ class _KitchenDisplayScreenState
 
   AppBar _buildAppBar(
     BuildContext context,
-    dynamic session,
+    // Typed, not `dynamic`. SPEC-097: this took `dynamic session` and read
+    // `session.stationId` after that field was removed. The analyzer cannot
+    // see a missing member on `dynamic`, so `flutter analyze` stayed clean,
+    // every test passed, and the board threw NoSuchMethodError on build and
+    // rendered a blank grey screen.
+    KdsSession? session,
     KdsViewMode viewMode,
     int colCount,
   ) {
@@ -166,8 +172,8 @@ class _KitchenDisplayScreenState
                   TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           if (session != null)
             Text(
-              session.locationName +
-                  (session.stationId != null ? ' · ${session.stationId}' : ''),
+              '${session.locationName} · '
+              '${session.isExpo ? 'Expo station' : 'Prep station'}',
               style:
                   TextStyle(fontSize: 11, color: colors.textSecondary),
             ),

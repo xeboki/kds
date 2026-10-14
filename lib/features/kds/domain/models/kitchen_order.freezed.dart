@@ -29,6 +29,19 @@ mixin _$KitchenOrder {
   int? get guestCount => throw _privateConstructorUsedError;
   int? get seatCount => throw _privateConstructorUsedError; // Order info
   String get orderNumber => throw _privateConstructorUsedError;
+
+  /// SPEC-097. Defaulted, not required.
+  ///
+  /// Neither writer emits a top-level `order_type`: the till's own
+  /// `KitchenOrder` has no such field at all, and the API records it only
+  /// inside `metadata`. With `checked: true` a missing required field
+  /// **throws**, so every real ticket crashed this app — the board rendered
+  /// blank and threw on every frame rather than showing an empty state.
+  ///
+  /// Dine-in is the right default for a legacy document: the till only
+  /// sends dine-in orders to the kitchen at all (`_sendToKitchen` returns
+  /// early for anything else). A kitchen ticket is short-lived, so the few
+  /// older online ones age out within a service.
   KitchenOrderType get orderType => throw _privateConstructorUsedError;
   KitchenOrderPriority get priority => throw _privateConstructorUsedError;
   KitchenOrderStatus get status => throw _privateConstructorUsedError; // Items
@@ -485,7 +498,7 @@ class _$KitchenOrderImpl extends _KitchenOrder {
     this.guestCount,
     this.seatCount,
     required this.orderNumber,
-    required this.orderType,
+    this.orderType = KitchenOrderType.dineIn,
     required this.priority,
     required this.status,
     final List<KitchenOrderItem> items = const [],
@@ -532,7 +545,21 @@ class _$KitchenOrderImpl extends _KitchenOrder {
   // Order info
   @override
   final String orderNumber;
+
+  /// SPEC-097. Defaulted, not required.
+  ///
+  /// Neither writer emits a top-level `order_type`: the till's own
+  /// `KitchenOrder` has no such field at all, and the API records it only
+  /// inside `metadata`. With `checked: true` a missing required field
+  /// **throws**, so every real ticket crashed this app — the board rendered
+  /// blank and threw on every frame rather than showing an empty state.
+  ///
+  /// Dine-in is the right default for a legacy document: the till only
+  /// sends dine-in orders to the kitchen at all (`_sendToKitchen` returns
+  /// early for anything else). A kitchen ticket is short-lived, so the few
+  /// older online ones age out within a service.
   @override
+  @JsonKey()
   final KitchenOrderType orderType;
   @override
   final KitchenOrderPriority priority;
@@ -742,7 +769,7 @@ abstract class _KitchenOrder extends KitchenOrder {
     final int? guestCount,
     final int? seatCount,
     required final String orderNumber,
-    required final KitchenOrderType orderType,
+    final KitchenOrderType orderType,
     required final KitchenOrderPriority priority,
     required final KitchenOrderStatus status,
     final List<KitchenOrderItem> items,
@@ -784,6 +811,19 @@ abstract class _KitchenOrder extends KitchenOrder {
   int? get seatCount; // Order info
   @override
   String get orderNumber;
+
+  /// SPEC-097. Defaulted, not required.
+  ///
+  /// Neither writer emits a top-level `order_type`: the till's own
+  /// `KitchenOrder` has no such field at all, and the API records it only
+  /// inside `metadata`. With `checked: true` a missing required field
+  /// **throws**, so every real ticket crashed this app — the board rendered
+  /// blank and threw on every frame rather than showing an empty state.
+  ///
+  /// Dine-in is the right default for a legacy document: the till only
+  /// sends dine-in orders to the kitchen at all (`_sendToKitchen` returns
+  /// early for anything else). A kitchen ticket is short-lived, so the few
+  /// older online ones age out within a service.
   @override
   KitchenOrderType get orderType;
   @override
