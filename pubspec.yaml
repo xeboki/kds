@@ -48,6 +48,18 @@ dependencies:
 
   # Utilities
   intl: ^0.20.2
+
+  # Printing a kitchen ticket.
+  #
+  # SPEC-097 097-A. Deliberately the PDF route, not the till's ESC/POS one.
+  # `ThermalPrintService` reaches a printer over a `dart:io` socket or
+  # Bluetooth, and neither exists on web — dart2js resolves `dart:io` to a stub
+  # whose members throw at runtime, so the till's kitchen print button compiles,
+  # ships, and fails on the only platform these apps are built for.
+  # `Printing.layoutPdf` opens the browser's own print dialog, which is how
+  # receipts already print at the checkout.
+  pdf: ^3.11.1
+  printing: ^5.13.2
   uuid: ^4.5.1
   package_info_plus: ^8.1.1
 

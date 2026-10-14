@@ -1,9 +1,14 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/kds_theme.dart';
 import '../../domain/models/kitchen_order.dart';
 import '../../domain/repositories/kitchen_repository.dart';
+import '../../domain/printing/kitchen_ticket_pdf.dart';
 import '../providers/kitchen_providers.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import 'item_tile.dart';
 import 'timer_badge.dart';
 
@@ -160,6 +165,11 @@ class _CardHeader extends StatelessWidget {
               ],
             ),
           ),
+
+          // SPEC-097 097-A. The first kitchen ticket in this product that can
+          // actually print — see kitchen_ticket_pdf.dart for what the till's
+          // button did instead.
+          PrintTicketButton(order: order),
 
           // Priority flag
           _PriorityIcon(order: order, repo: repo),
@@ -404,6 +414,74 @@ class _CardFooter extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The print button on a ticket.
+///
+/// SPEC-097 097-A. Separate from the card so the card does not have to know
+/// about PDFs, and so the one place that decides *which lines print* is the
+/// same rule the board filters by — a grill screen prints the grill's lines,
+/// the pass prints the whole order.
+class PrintTicketButton extends ConsumerStatefulWidget {
+  const PrintTicketButton({super.key, required this.order});
+
+  final KitchenOrder order;
+
+  @override
+  ConsumerState<PrintTicketButton> createState() => _PrintTicketButtonState();
+}
+
+class _PrintTicketButtonState extends ConsumerState<PrintTicketButton> {
+  bool _busy = false;
+
+  Future<void> _print() async {
+    final session = ref.read(sessionProvider);
+    if (session == null) return;
+    setState(() => _busy = true);
+    try {
+      final bytes = await buildKitchenTicketPdf(
+        widget.order,
+        screenRoutingCategoryIds: session.routingCategoryIds,
+        isExpo: session.isExpo,
+        locationName: session.locationName,
+      );
+      // Hands the document to the browser's own print dialog. The till's
+      // socket-based route cannot work here — see kitchen_ticket_pdf.dart.
+      await Printing.layoutPdf(
+        onLayout: (_) async => Uint8List.fromList(bytes),
+        name: 'Kitchen-${widget.order.orderNumber}',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not print this ticket — $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return InkWell(
+      onTap: _busy ? null : _print,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: _busy
+            ? SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: colors.textSecondary),
+              )
+            : Icon(Icons.print_outlined,
+                size: 18, color: colors.textSecondary),
       ),
     );
   }

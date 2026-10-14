@@ -104,8 +104,12 @@ void main() {
         // screen was full of `Colors.white54`, written when the app was
         // always dark. On the till's light ground the login title was
         // white on near-white — legible in neither theme by accident.
+        // `(?<![A-Za-z])` keeps this off `PdfColors.black`. A kitchen ticket
+        // is ink on thermal paper — it has no theme to follow, and there is
+        // no light mode on a paper roll.
         for (final m in RegExp(
-                r'Color\(0x[0-9a-fA-F]{8}\)|Colors\.(?:white|black)[0-9]*')
+                r'Color\(0x[0-9a-fA-F]{8}\)'
+                r'|(?<![A-Za-z])Colors\.(?:white|black)[0-9]*')
             .allMatches(source)) {
           offenders.add('${entity.path}: ${m.group(0)}');
         }
