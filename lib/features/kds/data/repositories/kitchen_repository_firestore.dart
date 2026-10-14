@@ -91,19 +91,19 @@ class KitchenRepositoryFirestore implements KitchenRepository {
     final now = FieldValue.serverTimestamp();
     switch (status) {
       case KitchenOrderStatus.preparing:
-        data['startedAt'] = now;
+        data['started_at'] = now;
         break;
       case KitchenOrderStatus.ready:
-        data['readyAt'] = now;
+        data['ready_at'] = now;
         break;
       case KitchenOrderStatus.bumped:
-        data['bumpedAt'] = now;
+        data['bumped_at'] = now;
         break;
       case KitchenOrderStatus.served:
-        data['servedAt'] = now;
+        data['served_at'] = now;
         break;
       case KitchenOrderStatus.recalled:
-        data['recalledAt'] = now;
+        data['recalled_at'] = now;
         break;
       default:
         break;
@@ -155,7 +155,7 @@ class KitchenRepositoryFirestore implements KitchenRepository {
     };
     if (allDone) {
       update['status'] = KitchenOrderStatus.ready.name;
-      update['readyAt'] = FieldValue.serverTimestamp();
+      update['ready_at'] = FieldValue.serverTimestamp();
     }
     await _orders.doc(orderId).update(update);
   }

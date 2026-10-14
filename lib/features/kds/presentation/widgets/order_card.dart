@@ -265,6 +265,8 @@ class _ItemsBody extends StatelessWidget {
                       repo.markItemStarted(order.id, item.id),
                   onMarkCompleted: () =>
                       repo.markItemCompleted(order.id, item.id),
+                  onToggle86: () => repo.set86Item(order.id, item.id,
+                      is86d: !item.is86d),
                 ))
             .toList(),
       );
@@ -324,6 +326,10 @@ class _ItemsBody extends StatelessWidget {
                   onMarkCompleted: allHeld
                       ? null
                       : () => repo.markItemCompleted(order.id, item.id),
+                  // Offered on a held course too: a kitchen learns it has run
+                  // out before the course is fired, not after.
+                  onToggle86: () =>
+                      repo.set86Item(order.id, item.id, is86d: !item.is86d),
                 )),
             Divider(color: colors.border, height: 16),
           ],

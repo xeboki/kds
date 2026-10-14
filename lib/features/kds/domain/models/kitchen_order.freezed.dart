@@ -50,12 +50,19 @@ mixin _$KitchenOrder {
   String? get serverId => throw _privateConstructorUsedError;
   String? get serverName => throw _privateConstructorUsedError;
   String? get preparedBy => throw _privateConstructorUsedError; // Timing
+  @RequiredTimestampConverter()
   DateTime get orderTime => throw _privateConstructorUsedError;
+  @TimestampConverter()
   DateTime? get startedAt => throw _privateConstructorUsedError;
+  @TimestampConverter()
   DateTime? get readyAt => throw _privateConstructorUsedError;
+  @TimestampConverter()
   DateTime? get servedAt => throw _privateConstructorUsedError;
+  @TimestampConverter()
   DateTime? get bumpedAt => throw _privateConstructorUsedError;
+  @TimestampConverter()
   DateTime? get recalledAt => throw _privateConstructorUsedError;
+  @TimestampConverter()
   DateTime? get scheduledFor => throw _privateConstructorUsedError; // Notes
   String? get specialInstructions => throw _privateConstructorUsedError;
   String? get allergyInfo =>
@@ -103,13 +110,13 @@ abstract class $KitchenOrderCopyWith<$Res> {
     String? serverId,
     String? serverName,
     String? preparedBy,
-    DateTime orderTime,
-    DateTime? startedAt,
-    DateTime? readyAt,
-    DateTime? servedAt,
-    DateTime? bumpedAt,
-    DateTime? recalledAt,
-    DateTime? scheduledFor,
+    @RequiredTimestampConverter() DateTime orderTime,
+    @TimestampConverter() DateTime? startedAt,
+    @TimestampConverter() DateTime? readyAt,
+    @TimestampConverter() DateTime? servedAt,
+    @TimestampConverter() DateTime? bumpedAt,
+    @TimestampConverter() DateTime? recalledAt,
+    @TimestampConverter() DateTime? scheduledFor,
     String? specialInstructions,
     String? allergyInfo,
     List<String> assignedStations,
@@ -308,13 +315,13 @@ abstract class _$$KitchenOrderImplCopyWith<$Res>
     String? serverId,
     String? serverName,
     String? preparedBy,
-    DateTime orderTime,
-    DateTime? startedAt,
-    DateTime? readyAt,
-    DateTime? servedAt,
-    DateTime? bumpedAt,
-    DateTime? recalledAt,
-    DateTime? scheduledFor,
+    @RequiredTimestampConverter() DateTime orderTime,
+    @TimestampConverter() DateTime? startedAt,
+    @TimestampConverter() DateTime? readyAt,
+    @TimestampConverter() DateTime? servedAt,
+    @TimestampConverter() DateTime? bumpedAt,
+    @TimestampConverter() DateTime? recalledAt,
+    @TimestampConverter() DateTime? scheduledFor,
     String? specialInstructions,
     String? allergyInfo,
     List<String> assignedStations,
@@ -505,13 +512,13 @@ class _$KitchenOrderImpl extends _KitchenOrder {
     this.serverId,
     this.serverName,
     this.preparedBy,
-    required this.orderTime,
-    this.startedAt,
-    this.readyAt,
-    this.servedAt,
-    this.bumpedAt,
-    this.recalledAt,
-    this.scheduledFor,
+    @RequiredTimestampConverter() required this.orderTime,
+    @TimestampConverter() this.startedAt,
+    @TimestampConverter() this.readyAt,
+    @TimestampConverter() this.servedAt,
+    @TimestampConverter() this.bumpedAt,
+    @TimestampConverter() this.recalledAt,
+    @TimestampConverter() this.scheduledFor,
     this.specialInstructions,
     this.allergyInfo,
     final List<String> assignedStations = const [],
@@ -585,18 +592,25 @@ class _$KitchenOrderImpl extends _KitchenOrder {
   final String? preparedBy;
   // Timing
   @override
+  @RequiredTimestampConverter()
   final DateTime orderTime;
   @override
+  @TimestampConverter()
   final DateTime? startedAt;
   @override
+  @TimestampConverter()
   final DateTime? readyAt;
   @override
+  @TimestampConverter()
   final DateTime? servedAt;
   @override
+  @TimestampConverter()
   final DateTime? bumpedAt;
   @override
+  @TimestampConverter()
   final DateTime? recalledAt;
   @override
+  @TimestampConverter()
   final DateTime? scheduledFor;
   // Notes
   @override
@@ -776,13 +790,13 @@ abstract class _KitchenOrder extends KitchenOrder {
     final String? serverId,
     final String? serverName,
     final String? preparedBy,
-    required final DateTime orderTime,
-    final DateTime? startedAt,
-    final DateTime? readyAt,
-    final DateTime? servedAt,
-    final DateTime? bumpedAt,
-    final DateTime? recalledAt,
-    final DateTime? scheduledFor,
+    @RequiredTimestampConverter() required final DateTime orderTime,
+    @TimestampConverter() final DateTime? startedAt,
+    @TimestampConverter() final DateTime? readyAt,
+    @TimestampConverter() final DateTime? servedAt,
+    @TimestampConverter() final DateTime? bumpedAt,
+    @TimestampConverter() final DateTime? recalledAt,
+    @TimestampConverter() final DateTime? scheduledFor,
     final String? specialInstructions,
     final String? allergyInfo,
     final List<String> assignedStations,
@@ -839,18 +853,25 @@ abstract class _KitchenOrder extends KitchenOrder {
   @override
   String? get preparedBy; // Timing
   @override
+  @RequiredTimestampConverter()
   DateTime get orderTime;
   @override
+  @TimestampConverter()
   DateTime? get startedAt;
   @override
+  @TimestampConverter()
   DateTime? get readyAt;
   @override
+  @TimestampConverter()
   DateTime? get servedAt;
   @override
+  @TimestampConverter()
   DateTime? get bumpedAt;
   @override
+  @TimestampConverter()
   DateTime? get recalledAt;
   @override
+  @TimestampConverter()
   DateTime? get scheduledFor; // Notes
   @override
   String? get specialInstructions;
@@ -904,7 +925,9 @@ mixin _$KitchenOrderItem {
       throw _privateConstructorUsedError; // Special requests
   String? get specialInstructions => throw _privateConstructorUsedError;
   String? get cookingPreference => throw _privateConstructorUsedError; // Timing
+  @TimestampConverter()
   DateTime? get startedAt => throw _privateConstructorUsedError;
+  @TimestampConverter()
   DateTime? get completedAt => throw _privateConstructorUsedError;
   String? get preparedBy =>
       throw _privateConstructorUsedError; // Course: 1=Appetiser 2=Main 3=Dessert
@@ -913,8 +936,8 @@ mixin _$KitchenOrderItem {
   bool get is86d => throw _privateConstructorUsedError; // Void
   bool get isCancelled => throw _privateConstructorUsedError;
   String? get cancelReason => throw _privateConstructorUsedError;
-  DateTime? get cancelledAt =>
-      throw _privateConstructorUsedError; // Edit tracking
+  @TimestampConverter()
+  DateTime? get cancelledAt => throw _privateConstructorUsedError; // Edit tracking
   bool get isNewlyAdded =>
       throw _privateConstructorUsedError; // added via POS edit — highlight green
   bool get isModified =>
@@ -953,15 +976,15 @@ abstract class $KitchenOrderItemCopyWith<$Res> {
     List<KitchenItemModifier> modifiers,
     String? specialInstructions,
     String? cookingPreference,
-    DateTime? startedAt,
-    DateTime? completedAt,
+    @TimestampConverter() DateTime? startedAt,
+    @TimestampConverter() DateTime? completedAt,
     String? preparedBy,
     int? courseNumber,
     int? displayOrder,
     bool is86d,
     bool isCancelled,
     String? cancelReason,
-    DateTime? cancelledAt,
+    @TimestampConverter() DateTime? cancelledAt,
     bool isNewlyAdded,
     bool isModified,
     Map<String, dynamic>? metadata,
@@ -1146,15 +1169,15 @@ abstract class _$$KitchenOrderItemImplCopyWith<$Res>
     List<KitchenItemModifier> modifiers,
     String? specialInstructions,
     String? cookingPreference,
-    DateTime? startedAt,
-    DateTime? completedAt,
+    @TimestampConverter() DateTime? startedAt,
+    @TimestampConverter() DateTime? completedAt,
     String? preparedBy,
     int? courseNumber,
     int? displayOrder,
     bool is86d,
     bool isCancelled,
     String? cancelReason,
-    DateTime? cancelledAt,
+    @TimestampConverter() DateTime? cancelledAt,
     bool isNewlyAdded,
     bool isModified,
     Map<String, dynamic>? metadata,
@@ -1331,15 +1354,15 @@ class _$KitchenOrderItemImpl extends _KitchenOrderItem {
     final List<KitchenItemModifier> modifiers = const [],
     this.specialInstructions,
     this.cookingPreference,
-    this.startedAt,
-    this.completedAt,
+    @TimestampConverter() this.startedAt,
+    @TimestampConverter() this.completedAt,
     this.preparedBy,
     this.courseNumber,
     this.displayOrder,
     this.is86d = false,
     this.isCancelled = false,
     this.cancelReason,
-    this.cancelledAt,
+    @TimestampConverter() this.cancelledAt,
     this.isNewlyAdded = false,
     this.isModified = false,
     final Map<String, dynamic>? metadata,
@@ -1411,8 +1434,10 @@ class _$KitchenOrderItemImpl extends _KitchenOrderItem {
   final String? cookingPreference;
   // Timing
   @override
+  @TimestampConverter()
   final DateTime? startedAt;
   @override
+  @TimestampConverter()
   final DateTime? completedAt;
   @override
   final String? preparedBy;
@@ -1433,6 +1458,7 @@ class _$KitchenOrderItemImpl extends _KitchenOrderItem {
   @override
   final String? cancelReason;
   @override
+  @TimestampConverter()
   final DateTime? cancelledAt;
   // Edit tracking
   @override
@@ -1582,15 +1608,15 @@ abstract class _KitchenOrderItem extends KitchenOrderItem {
     final List<KitchenItemModifier> modifiers,
     final String? specialInstructions,
     final String? cookingPreference,
-    final DateTime? startedAt,
-    final DateTime? completedAt,
+    @TimestampConverter() final DateTime? startedAt,
+    @TimestampConverter() final DateTime? completedAt,
     final String? preparedBy,
     final int? courseNumber,
     final int? displayOrder,
     final bool is86d,
     final bool isCancelled,
     final String? cancelReason,
-    final DateTime? cancelledAt,
+    @TimestampConverter() final DateTime? cancelledAt,
     final bool isNewlyAdded,
     final bool isModified,
     final Map<String, dynamic>? metadata,
@@ -1636,8 +1662,10 @@ abstract class _KitchenOrderItem extends KitchenOrderItem {
   @override
   String? get cookingPreference; // Timing
   @override
+  @TimestampConverter()
   DateTime? get startedAt;
   @override
+  @TimestampConverter()
   DateTime? get completedAt;
   @override
   String? get preparedBy; // Course: 1=Appetiser 2=Main 3=Dessert
@@ -1652,6 +1680,7 @@ abstract class _KitchenOrderItem extends KitchenOrderItem {
   @override
   String? get cancelReason;
   @override
+  @TimestampConverter()
   DateTime? get cancelledAt; // Edit tracking
   @override
   bool get isNewlyAdded; // added via POS edit — highlight green
@@ -1910,7 +1939,9 @@ mixin _$KitchenStation {
   bool get autoSoundEnabled => throw _privateConstructorUsedError;
   bool get autoBumpEnabled => throw _privateConstructorUsedError;
   int? get autoBumpAfterMins => throw _privateConstructorUsedError;
+  @TimestampConverter()
   DateTime? get createdAt => throw _privateConstructorUsedError;
+  @TimestampConverter()
   DateTime? get updatedAt => throw _privateConstructorUsedError;
   Map<String, dynamic>? get metadata => throw _privateConstructorUsedError;
 
@@ -1951,8 +1982,8 @@ abstract class $KitchenStationCopyWith<$Res> {
     bool autoSoundEnabled,
     bool autoBumpEnabled,
     int? autoBumpAfterMins,
-    DateTime? createdAt,
-    DateTime? updatedAt,
+    @TimestampConverter() DateTime? createdAt,
+    @TimestampConverter() DateTime? updatedAt,
     Map<String, dynamic>? metadata,
   });
 }
@@ -2120,8 +2151,8 @@ abstract class _$$KitchenStationImplCopyWith<$Res>
     bool autoSoundEnabled,
     bool autoBumpEnabled,
     int? autoBumpAfterMins,
-    DateTime? createdAt,
-    DateTime? updatedAt,
+    @TimestampConverter() DateTime? createdAt,
+    @TimestampConverter() DateTime? updatedAt,
     Map<String, dynamic>? metadata,
   });
 }
@@ -2281,8 +2312,8 @@ class _$KitchenStationImpl extends _KitchenStation {
     this.autoSoundEnabled = false,
     this.autoBumpEnabled = false,
     this.autoBumpAfterMins,
-    this.createdAt,
-    this.updatedAt,
+    @TimestampConverter() this.createdAt,
+    @TimestampConverter() this.updatedAt,
     final Map<String, dynamic>? metadata,
   }) : _assignedStaffIds = assignedStaffIds,
        _categoryIds = categoryIds,
@@ -2354,8 +2385,10 @@ class _$KitchenStationImpl extends _KitchenStation {
   @override
   final int? autoBumpAfterMins;
   @override
+  @TimestampConverter()
   final DateTime? createdAt;
   @override
+  @TimestampConverter()
   final DateTime? updatedAt;
   final Map<String, dynamic>? _metadata;
   @override
@@ -2491,8 +2524,8 @@ abstract class _KitchenStation extends KitchenStation {
     final bool autoSoundEnabled,
     final bool autoBumpEnabled,
     final int? autoBumpAfterMins,
-    final DateTime? createdAt,
-    final DateTime? updatedAt,
+    @TimestampConverter() final DateTime? createdAt,
+    @TimestampConverter() final DateTime? updatedAt,
     final Map<String, dynamic>? metadata,
   }) = _$KitchenStationImpl;
   const _KitchenStation._() : super._();
@@ -2539,8 +2572,10 @@ abstract class _KitchenStation extends KitchenStation {
   @override
   int? get autoBumpAfterMins;
   @override
+  @TimestampConverter()
   DateTime? get createdAt;
   @override
+  @TimestampConverter()
   DateTime? get updatedAt;
   @override
   Map<String, dynamic>? get metadata;

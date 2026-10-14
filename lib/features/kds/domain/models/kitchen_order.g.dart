@@ -53,31 +53,31 @@ _$KitchenOrderImpl _$$KitchenOrderImplFromJson(
       preparedBy: $checkedConvert('prepared_by', (v) => v as String?),
       orderTime: $checkedConvert(
         'order_time',
-        (v) => DateTime.parse(v as String),
+        (v) => const RequiredTimestampConverter().fromJson(v),
       ),
       startedAt: $checkedConvert(
         'started_at',
-        (v) => v == null ? null : DateTime.parse(v as String),
+        (v) => const TimestampConverter().fromJson(v),
       ),
       readyAt: $checkedConvert(
         'ready_at',
-        (v) => v == null ? null : DateTime.parse(v as String),
+        (v) => const TimestampConverter().fromJson(v),
       ),
       servedAt: $checkedConvert(
         'served_at',
-        (v) => v == null ? null : DateTime.parse(v as String),
+        (v) => const TimestampConverter().fromJson(v),
       ),
       bumpedAt: $checkedConvert(
         'bumped_at',
-        (v) => v == null ? null : DateTime.parse(v as String),
+        (v) => const TimestampConverter().fromJson(v),
       ),
       recalledAt: $checkedConvert(
         'recalled_at',
-        (v) => v == null ? null : DateTime.parse(v as String),
+        (v) => const TimestampConverter().fromJson(v),
       ),
       scheduledFor: $checkedConvert(
         'scheduled_for',
-        (v) => v == null ? null : DateTime.parse(v as String),
+        (v) => const TimestampConverter().fromJson(v),
       ),
       specialInstructions: $checkedConvert(
         'special_instructions',
@@ -126,37 +126,38 @@ _$KitchenOrderImpl _$$KitchenOrderImplFromJson(
   },
 );
 
-Map<String, dynamic> _$$KitchenOrderImplToJson(_$KitchenOrderImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'order_id': instance.orderId,
-      'location_id': instance.locationId,
-      'table_number': instance.tableNumber,
-      'table_section_name': instance.tableSectionName,
-      'guest_count': instance.guestCount,
-      'seat_count': instance.seatCount,
-      'order_number': instance.orderNumber,
-      'order_type': _$KitchenOrderTypeEnumMap[instance.orderType]!,
-      'priority': _$KitchenOrderPriorityEnumMap[instance.priority]!,
-      'status': _$KitchenOrderStatusEnumMap[instance.status]!,
-      'items': instance.items.map((e) => e.toJson()).toList(),
-      'server_id': instance.serverId,
-      'server_name': instance.serverName,
-      'prepared_by': instance.preparedBy,
-      'order_time': instance.orderTime.toIso8601String(),
-      'started_at': instance.startedAt?.toIso8601String(),
-      'ready_at': instance.readyAt?.toIso8601String(),
-      'served_at': instance.servedAt?.toIso8601String(),
-      'bumped_at': instance.bumpedAt?.toIso8601String(),
-      'recalled_at': instance.recalledAt?.toIso8601String(),
-      'scheduled_for': instance.scheduledFor?.toIso8601String(),
-      'special_instructions': instance.specialInstructions,
-      'allergy_info': instance.allergyInfo,
-      'assigned_stations': instance.assignedStations,
-      'routing_category_ids': instance.routingCategoryIds,
-      'source_label': instance.sourceLabel,
-      'metadata': instance.metadata,
-    };
+Map<String, dynamic> _$$KitchenOrderImplToJson(
+  _$KitchenOrderImpl instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'order_id': instance.orderId,
+  'location_id': instance.locationId,
+  'table_number': instance.tableNumber,
+  'table_section_name': instance.tableSectionName,
+  'guest_count': instance.guestCount,
+  'seat_count': instance.seatCount,
+  'order_number': instance.orderNumber,
+  'order_type': _$KitchenOrderTypeEnumMap[instance.orderType]!,
+  'priority': _$KitchenOrderPriorityEnumMap[instance.priority]!,
+  'status': _$KitchenOrderStatusEnumMap[instance.status]!,
+  'items': instance.items.map((e) => e.toJson()).toList(),
+  'server_id': instance.serverId,
+  'server_name': instance.serverName,
+  'prepared_by': instance.preparedBy,
+  'order_time': const RequiredTimestampConverter().toJson(instance.orderTime),
+  'started_at': const TimestampConverter().toJson(instance.startedAt),
+  'ready_at': const TimestampConverter().toJson(instance.readyAt),
+  'served_at': const TimestampConverter().toJson(instance.servedAt),
+  'bumped_at': const TimestampConverter().toJson(instance.bumpedAt),
+  'recalled_at': const TimestampConverter().toJson(instance.recalledAt),
+  'scheduled_for': const TimestampConverter().toJson(instance.scheduledFor),
+  'special_instructions': instance.specialInstructions,
+  'allergy_info': instance.allergyInfo,
+  'assigned_stations': instance.assignedStations,
+  'routing_category_ids': instance.routingCategoryIds,
+  'source_label': instance.sourceLabel,
+  'metadata': instance.metadata,
+};
 
 const _$KitchenOrderTypeEnumMap = {
   KitchenOrderType.dineIn: 'dineIn',
@@ -228,11 +229,11 @@ _$KitchenOrderItemImpl _$$KitchenOrderItemImplFromJson(
       ),
       startedAt: $checkedConvert(
         'started_at',
-        (v) => v == null ? null : DateTime.parse(v as String),
+        (v) => const TimestampConverter().fromJson(v),
       ),
       completedAt: $checkedConvert(
         'completed_at',
-        (v) => v == null ? null : DateTime.parse(v as String),
+        (v) => const TimestampConverter().fromJson(v),
       ),
       preparedBy: $checkedConvert('prepared_by', (v) => v as String?),
       courseNumber: $checkedConvert(
@@ -248,7 +249,7 @@ _$KitchenOrderItemImpl _$$KitchenOrderItemImplFromJson(
       cancelReason: $checkedConvert('cancel_reason', (v) => v as String?),
       cancelledAt: $checkedConvert(
         'cancelled_at',
-        (v) => v == null ? null : DateTime.parse(v as String),
+        (v) => const TimestampConverter().fromJson(v),
       ),
       isNewlyAdded: $checkedConvert(
         'is_newly_added',
@@ -300,15 +301,15 @@ Map<String, dynamic> _$$KitchenOrderItemImplToJson(
   'modifiers': instance.modifiers.map((e) => e.toJson()).toList(),
   'special_instructions': instance.specialInstructions,
   'cooking_preference': instance.cookingPreference,
-  'started_at': instance.startedAt?.toIso8601String(),
-  'completed_at': instance.completedAt?.toIso8601String(),
+  'started_at': const TimestampConverter().toJson(instance.startedAt),
+  'completed_at': const TimestampConverter().toJson(instance.completedAt),
   'prepared_by': instance.preparedBy,
   'course_number': instance.courseNumber,
   'display_order': instance.displayOrder,
   'is86d': instance.is86d,
   'is_cancelled': instance.isCancelled,
   'cancel_reason': instance.cancelReason,
-  'cancelled_at': instance.cancelledAt?.toIso8601String(),
+  'cancelled_at': const TimestampConverter().toJson(instance.cancelledAt),
   'is_newly_added': instance.isNewlyAdded,
   'is_modified': instance.isModified,
   'metadata': instance.metadata,
@@ -416,11 +417,11 @@ _$KitchenStationImpl _$$KitchenStationImplFromJson(
       ),
       createdAt: $checkedConvert(
         'created_at',
-        (v) => v == null ? null : DateTime.parse(v as String),
+        (v) => const TimestampConverter().fromJson(v),
       ),
       updatedAt: $checkedConvert(
         'updated_at',
-        (v) => v == null ? null : DateTime.parse(v as String),
+        (v) => const TimestampConverter().fromJson(v),
       ),
       metadata: $checkedConvert('metadata', (v) => v as Map<String, dynamic>?),
     );
@@ -468,8 +469,8 @@ Map<String, dynamic> _$$KitchenStationImplToJson(
   'auto_sound_enabled': instance.autoSoundEnabled,
   'auto_bump_enabled': instance.autoBumpEnabled,
   'auto_bump_after_mins': instance.autoBumpAfterMins,
-  'created_at': instance.createdAt?.toIso8601String(),
-  'updated_at': instance.updatedAt?.toIso8601String(),
+  'created_at': const TimestampConverter().toJson(instance.createdAt),
+  'updated_at': const TimestampConverter().toJson(instance.updatedAt),
   'metadata': instance.metadata,
 };
 

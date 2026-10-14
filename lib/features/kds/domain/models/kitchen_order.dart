@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'screen_role.dart';
+import 'timestamp_converter.dart';
 
 part 'kitchen_order.freezed.dart';
 part 'kitchen_order.g.dart';
@@ -45,13 +46,13 @@ class KitchenOrder with _$KitchenOrder {
     String? preparedBy,
 
     // Timing
-    required DateTime orderTime,
-    DateTime? startedAt,
-    DateTime? readyAt,
-    DateTime? servedAt,
-    DateTime? bumpedAt,
-    DateTime? recalledAt,
-    DateTime? scheduledFor,
+    @RequiredTimestampConverter() required DateTime orderTime,
+    @TimestampConverter() DateTime? startedAt,
+    @TimestampConverter() DateTime? readyAt,
+    @TimestampConverter() DateTime? servedAt,
+    @TimestampConverter() DateTime? bumpedAt,
+    @TimestampConverter() DateTime? recalledAt,
+    @TimestampConverter() DateTime? scheduledFor,
 
     // Notes
     String? specialInstructions,
@@ -179,8 +180,8 @@ class KitchenOrderItem with _$KitchenOrderItem {
     String? cookingPreference,
 
     // Timing
-    DateTime? startedAt,
-    DateTime? completedAt,
+    @TimestampConverter() DateTime? startedAt,
+    @TimestampConverter() DateTime? completedAt,
     String? preparedBy,
 
     // Course: 1=Appetiser 2=Main 3=Dessert
@@ -195,7 +196,7 @@ class KitchenOrderItem with _$KitchenOrderItem {
     // Void
     @Default(false) bool isCancelled,
     String? cancelReason,
-    DateTime? cancelledAt,
+    @TimestampConverter() DateTime? cancelledAt,
 
     // Edit tracking
     @Default(false) bool isNewlyAdded,   // added via POS edit — highlight green
@@ -258,8 +259,8 @@ class KitchenStation with _$KitchenStation {
     @Default(false) bool autoSoundEnabled,
     @Default(false) bool autoBumpEnabled,
     int? autoBumpAfterMins,
-    DateTime? createdAt,
-    DateTime? updatedAt,
+    @TimestampConverter() DateTime? createdAt,
+    @TimestampConverter() DateTime? updatedAt,
     Map<String, dynamic>? metadata,
   }) = _KitchenStation;
 

@@ -7,6 +7,7 @@ import '../../domain/models/kitchen_order.dart';
 import '../../../auth/domain/models/kds_session.dart';
 import '../providers/kitchen_providers.dart';
 import '../widgets/order_card.dart';
+import '../widgets/recall_panel.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 
 class KitchenDisplayScreen extends ConsumerStatefulWidget {
@@ -180,6 +181,16 @@ class _KitchenDisplayScreenState
         ],
       ),
       actions: [
+        // SPEC-097 097-A. Bump is one tap with no confirmation, and until this
+        // existed it was the only irreversible thing on the board — a ticket
+        // bumped by mistake could only be recovered by ringing the order
+        // again at the till. The repository has had `recallOrder` all along.
+        IconButton(
+          tooltip: 'Recall a bumped ticket',
+          icon: Icon(Icons.history, color: colors.textSecondary),
+          onPressed: () => showRecallPanel(context),
+        ),
+
         // View mode toggle
         IconButton(
           tooltip: 'Toggle view',

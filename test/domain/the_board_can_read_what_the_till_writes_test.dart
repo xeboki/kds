@@ -14,6 +14,7 @@
 /// produces.
 library;
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xeboki_kds/features/kds/domain/models/kitchen_order.dart';
 
@@ -54,6 +55,7 @@ Map<String, dynamic> tillTicket() => {
     };
 
 void main() {
+  _timestampCases();
   test('a ticket with no order_type parses instead of throwing', () {
     final order = KitchenOrder.fromJson(tillTicket());
     expect(order.orderNumber, 'RCP00044');
@@ -85,5 +87,57 @@ void main() {
     final order =
         KitchenOrder.fromJson({...tillTicket(), 'order_type': 'takeaway'});
     expect(order.orderType, KitchenOrderType.takeaway);
+  });
+}
+
+/// SPEC-097 097-A. The dates in a `kitchen_orders` document are not all the
+/// same type, and every test above fed this model ISO strings — which is why
+/// none of them noticed that a hand-stamped field throws.
+///
+/// `bumpOrder` writes `FieldValue.serverTimestamp()`, so `bumped_at` comes
+/// back a `Timestamp` while `order_time`, written through `toJson()`, is a
+/// String. One unreadable field throws the whole document away, so the recall
+/// panel rendered a red `CheckedFromJsonException` instead of a list.
+void _timestampCases() {
+  group('a date Firestore stored as a Timestamp', () {
+    Map<String, dynamic> ticket(Object bumpedAt) => {
+          // The repository merges the document id in, as this app's reads do.
+          'id': 'doc1',
+          'order_id': 'o1',
+          'location_id': 'loc1',
+          'order_number': 'RCP00042',
+          'priority': 'normal',
+          'status': 'bumped',
+          'order_time': '2026-10-14T09:00:00.000Z',
+          'bumped_at': bumpedAt,
+          'items': <dynamic>[],
+        };
+
+    test('parses, rather than throwing the whole ticket away', () {
+      final at = DateTime.utc(2026, 10, 14, 9, 30);
+      final order = KitchenOrder.fromJson(ticket(Timestamp.fromDate(at)));
+      expect(order.bumpedAt, at);
+      expect(order.orderNumber, 'RCP00042');
+    });
+
+    test('an ISO string still reads the same', () {
+      final order =
+          KitchenOrder.fromJson(ticket('2026-10-14T09:30:00.000Z'));
+      expect(order.bumpedAt, DateTime.utc(2026, 10, 14, 9, 30));
+    });
+
+    test('a required date given as a Timestamp reads too', () {
+      final at = DateTime.utc(2026, 10, 14, 9, 0);
+      final json = ticket('2026-10-14T09:30:00.000Z')
+        ..['order_time'] = Timestamp.fromDate(at);
+      expect(KitchenOrder.fromJson(json).orderTime, at);
+    });
+
+    test('a pending serverTimestamp reads as null, not a crash', () {
+      // Firestore reports null for a server timestamp that has not resolved
+      // yet, in the local snapshot fired immediately after the write.
+      final json = ticket('x')..['bumped_at'] = null;
+      expect(KitchenOrder.fromJson(json).bumpedAt, isNull);
+    });
   });
 }

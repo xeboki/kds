@@ -9,11 +9,20 @@ class ItemTile extends StatelessWidget {
     required this.item,
     this.onMarkStarted,
     this.onMarkCompleted,
+    this.onToggle86,
   });
 
   final KitchenOrderItem item;
   final VoidCallback? onMarkStarted;
   final VoidCallback? onMarkCompleted;
+
+  /// Mark the item off, or back on.
+  ///
+  /// SPEC-097 097-A. This tile has always *rendered* an 86'd line — red,
+  /// struck through, badged — and there was no way to set it: `set86Item` sat
+  /// on the repository with no caller. A long press, as on the till, because
+  /// it is destructive enough that a brush of a sleeve should not do it.
+  final VoidCallback? onToggle86;
 
   @override
   Widget build(BuildContext context) {
@@ -38,8 +47,10 @@ class ItemTile extends StatelessWidget {
         statusColor = kitchen.statusBumped;
     }
 
-    return Opacity(
-      opacity: isDone ? 0.45 : 1.0,
+    return GestureDetector(
+      onLongPress: onToggle86,
+      child: Opacity(
+      opacity: is86d ? 0.5 : (isDone ? 0.45 : 1.0),
       child: Container(
         margin: const EdgeInsets.only(bottom: 4),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
@@ -162,6 +173,7 @@ class ItemTile extends StatelessWidget {
               ),
           ],
         ),
+      ),
       ),
     );
   }
