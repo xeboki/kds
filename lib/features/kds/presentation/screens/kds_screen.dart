@@ -6,6 +6,7 @@ import '../../../../core/theme/kds_theme.dart';
 import '../../domain/models/kitchen_order.dart';
 import '../../../auth/domain/models/kds_session.dart';
 import '../providers/kitchen_providers.dart';
+import '../widgets/analytics_panel.dart';
 import '../widgets/order_card.dart';
 import '../widgets/recall_panel.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -189,6 +190,15 @@ class _KitchenDisplayScreenState
           tooltip: 'Recall a bumped ticket',
           icon: Icon(Icons.history, color: colors.textSecondary),
           onPressed: () => showRecallPanel(context),
+        ),
+
+        // SPEC-097 097-A. The board shows the tickets that are open and
+        // nothing else, so the shape of a service — the backlog, the oldest
+        // wait, what went out in the last hour — could only be counted by eye.
+        IconButton(
+          tooltip: 'Kitchen analytics',
+          icon: Icon(Icons.bar_chart, color: colors.textSecondary),
+          onPressed: () => showAnalyticsPanel(context),
         ),
 
         // View mode toggle

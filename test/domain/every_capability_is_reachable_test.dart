@@ -27,7 +27,13 @@ const _notUserFacing = <String, String>{
   'getStations': 'stations are configured in the back office now',
   'updateStation': 'stations are configured in the back office now',
   'updateItemStatus': 'reached through markItemStarted / markItemCompleted',
-  'updateOrderStatus': 'reached through bumpOrder and the item statuses',
+  // Reached through bumpOrder (-> bumped) and updateItemStatus (-> ready when
+  // the last line is done). The one status no path sets is `served`, and that
+  // is deliberate: in Square's model the bump *is* completion, and nothing in
+  // either app has ever written or read `served` — the till's own `markServed`
+  // has no caller either. A "Served" button here would be a new feature
+  // invented to satisfy a guard, not a gap being closed.
+  'updateOrderStatus': 'bumpOrder and the item statuses; served is unused',
 };
 
 void main() {
