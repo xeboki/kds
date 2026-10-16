@@ -48,6 +48,19 @@ final bumpedOrdersProvider =
   return repo.getBumpedOrders(locationId: session.locationId);
 });
 
+/// The same tickets, but enough of them to count an hour's work by.
+///
+/// Separate from [bumpedOrdersProvider] because the recall list wants the
+/// last handful and the analytics panel wants the whole hour; sharing one
+/// 20-row read made "bumped in the last hour" stop counting at 20.
+final bumpedForStatsProvider =
+    FutureProvider.autoDispose<List<KitchenOrder>>((ref) async {
+  final session = ref.watch(sessionProvider);
+  if (session == null) return [];
+  final repo = ref.watch(kitchenRepositoryProvider);
+  return repo.getBumpedOrders(locationId: session.locationId, limit: 300);
+});
+
 // ── Display preferences (persisted) ──────────────────────────────────────────
 
 const _kColCount = 'kds_column_count';

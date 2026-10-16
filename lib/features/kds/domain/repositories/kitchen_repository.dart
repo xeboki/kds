@@ -12,6 +12,12 @@ abstract class KitchenRepository {
 
   Stream<KitchenOrder> watchOrder(String orderId);
 
+  /// Recently bumped tickets, newest first.
+  ///
+  /// [limit] is the *recall list's* page, not a figure anyone counts. The
+  /// analytics panel asks for a bigger one: at 20 its "bumped in the last
+  /// hour" silently stopped counting at 20 on any service busy enough for
+  /// the number to matter.
   Future<List<KitchenOrder>> getBumpedOrders({
     required String locationId,
     int limit = 20,
