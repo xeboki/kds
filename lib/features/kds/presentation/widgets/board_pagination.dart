@@ -21,6 +21,7 @@
 library;
 
 import '../../domain/models/kitchen_order.dart';
+import '../../domain/ticket_fit.dart';
 
 /// One line of a ticket, in logical pixels, at each ticket size.
 ///
@@ -83,8 +84,11 @@ int costOf(KitchenOrder order, {
   required int capacity,
   required int size,
 }) {
-  final lines = order.linesFor(screenRoutingCategoryIds, isExpo: isExpo).length;
-  return (lines + chromeInLines(size)).clamp(1, capacity);
+  // Rows, not lines: a coursed ticket also pays for its course headings, and
+  // the card budgets through the same function so the two cannot disagree.
+  final rows = rowsNeeded(
+      order.coursesFor(screenRoutingCategoryIds, isExpo: isExpo));
+  return (rows + chromeInLines(size)).clamp(1, capacity);
 }
 
 /// One page of the board: the tickets on it, in the order they are read.

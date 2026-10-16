@@ -51,9 +51,10 @@ List<AllDayLine> allDayCounts(
   for (final order in orders) {
     for (final item
         in order.linesFor(screenRoutingCategoryIds, isExpo: isExpo)) {
-      if (item.is86d ||
-          item.status == KitchenItemStatus.completed ||
-          item.status == KitchenItemStatus.cancelled) {
+      // `isOff` rather than the status alone: a **voided** line was counted
+      // here, so the all-day told the kitchen to make a dish a server had
+      // already taken off the ticket.
+      if (item.isOff || item.status == KitchenItemStatus.completed) {
         continue;
       }
       final name = item.productName;

@@ -119,7 +119,13 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
 
-    final waits = active.map((o) => o.waitTimeMinutes).toList();
+    // Orders not due yet are dropped, not clamped: their wait is negative,
+    // and one pre-order for tonight would otherwise pull the average below
+    // zero and make the oldest ticket look fresher than it is.
+    final waits = active
+        .where((o) => !o.isScheduledAhead)
+        .map((o) => o.waitTimeMinutes)
+        .toList();
     final avgWait =
         waits.isEmpty ? 0 : waits.reduce((a, b) => a + b) ~/ waits.length;
     // The oldest ticket is the one a customer is actually waiting on, and an

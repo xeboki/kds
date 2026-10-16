@@ -7,6 +7,7 @@ import '../../domain/all_day.dart';
 import '../../domain/models/kitchen_order.dart';
 import '../../../auth/domain/models/kds_session.dart';
 import '../providers/kitchen_providers.dart';
+import '../widgets/legend_sheet.dart';
 import '../widgets/analytics_panel.dart';
 import '../widgets/board_pagination.dart';
 import '../widgets/order_card.dart';
@@ -238,6 +239,22 @@ class _KitchenDisplayScreenState
           icon: Icon(Icons.settings, color: colors.textSecondary),
           onPressed: () =>
               _showLayoutPicker(context, colCount, ticketSize),
+        ),
+
+        // What everything means.
+        //
+        // Last before sign-out so it sits at the end of the row a cook scans,
+        // and present on every view: the dots and badges it explains are on
+        // all of them.
+        IconButton(
+          tooltip: 'What the colours and badges mean',
+          icon: Icon(Icons.info_outline, color: colors.textSecondary),
+          onPressed: () => showLegendSheet(
+            context,
+            urgentMins: ref.read(sessionProvider)?.urgentThresholdMins ?? 8,
+            veryUrgentMins:
+                ref.read(sessionProvider)?.veryUrgentThresholdMins ?? 15,
+          ),
         ),
 
         // Logout
@@ -1305,7 +1322,7 @@ class _ExpoOrderBlock extends StatelessWidget {
                   ],
                   const Spacer(),
                   TimerBadge(
-                    orderTime: order.orderTime,
+                    dueAt: order.dueAt,
                     urgentMins: urgentMins,
                     veryUrgentMins: veryUrgentMins,
                     criticalMins: veryUrgentMins + (veryUrgentMins - urgentMins),

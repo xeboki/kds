@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/kds_theme.dart';
+import '../../domain/line_meanings.dart';
 import '../../domain/models/kitchen_order.dart';
+import '../../domain/ticket_fit.dart';
 import '../../domain/repositories/kitchen_repository.dart';
 import '../../domain/printing/kitchen_ticket_pdf.dart';
 import '../providers/kitchen_providers.dart';
@@ -45,32 +47,17 @@ class OrderCard extends ConsumerWidget {
   /// How tall one line is, so the card draws what the board budgeted.
   final double lineHeight;
 
-  int get _totalLines =>
-      order.linesFor(routingCategoryIds, isExpo: isExpo).length;
-
-  /// Lines this card will actually draw.
+  /// What fits in the slot the board gave this card, lines and course
+  /// headings together.
   ///
-  /// One short of the budget when anything is hidden, because the "+N more"
-  /// notice occupies a row of its own in the footer. Without that the notice
-  /// pushes the last line out of a clipped box and the count it quotes is
-  /// one too few — a number that is wrong only when it matters.
-  int? get _shownLines {
-    final budget = maxLines;
-    if (budget == null) return null;
-    return _totalLines > budget ? budget - 1 : budget;
-  }
-
-  /// Lines this card has no room for.
-  ///
-  /// Only ever non-zero for an order longer than a whole column, which the
-  /// board caps rather than letting it scroll or spill onto a page that — in
-  /// Square's case, per their own forums — users report being unable to reach.
-  int get _hiddenLines {
-    final shown = _shownLines;
-    if (shown == null) return 0;
-    final hidden = _totalLines - shown;
-    return hidden > 0 ? hidden : 0;
-  }
+  /// The board sized the slot through `rowsNeeded`, so the card asks the same
+  /// function what to draw. Before this the coursed path drew every line and
+  /// charged nothing for its headings, so a coursed ticket painted past the
+  /// bottom of its slot, got clipped, and said nothing was hidden.
+  TicketFit get _fit => fitTicket(
+        order.coursesFor(routingCategoryIds, isExpo: isExpo),
+        rowBudget: maxLines,
+      );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -156,7 +143,7 @@ class OrderCard extends ConsumerWidget {
               child: _ItemsBody(
                   order: order,
                   repo: repo,
-                  maxLines: _shownLines,
+                  fit: _fit,
                   lineHeight: lineHeight,
                   routingCategoryIds: routingCategoryIds,
                   isExpo: isExpo),
@@ -171,7 +158,7 @@ class OrderCard extends ConsumerWidget {
           _CardFooter(
             order: order,
             repo: repo,
-            hiddenLines: _hiddenLines,
+            hiddenLines: _fit.itemsHidden,
             onOpen: () => showTicketSheet(
               context,
               order: order,
@@ -218,6 +205,27 @@ class _CardHeader extends StatelessWidget {
   int get _lineCount =>
       order.linesFor(routingCategoryIds, isExpo: isExpo).length;
 
+  /// The ticket's secondary facts, in the order a cook needs them.
+  ///
+  /// Covers and the server's name are on every kitchen ticket in the trade
+  /// and were carried on the model without ever being drawn — the expo had
+  /// no way to tell whose table to call.
+  String _meta() {
+    // Ordered by what a cook loses least by losing: the run is ellipsised to
+    // the card's width, and with covers second the **item count** was the
+    // part cut off — the one fact that warns a ticket has more lines than
+    // the card is showing. Table, then count, then who to call, then covers.
+    final parts = <String>[
+      if (order.tableNumber != null) tableLabel(order.tableNumber!),
+      if (_lineCount > 0) itemCount(_lineCount),
+      if (order.serverName != null && order.serverName!.trim().isNotEmpty)
+        order.serverName!.trim(),
+      if (order.guestCount != null && order.guestCount! > 0)
+        '${order.guestCount} ${order.guestCount == 1 ? 'cover' : 'covers'}',
+    ];
+    return parts.isEmpty ? '' : '  ·  ${parts.join('  ·  ')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
@@ -227,14 +235,18 @@ class _CardHeader extends StatelessWidget {
         color: colors.surfaceContainer,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
       ),
-      child: Row(
+      // Two full-width rows rather than a column squeezed beside the
+      // buttons. The facts row shared its width with the print, flag and
+      // timer controls, so "T14 · 15 items · Ivana · 6 covers" ellipsised
+      // away the covers on every card; given the whole card it fits.
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Order number + type
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                InkWell(
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
                   // Opens the whole ticket. On a truncated one the "+N more"
                   // line is the obvious way in; this is the way in for every
                   // other ticket, and for anyone who reaches for the number.
@@ -253,70 +265,109 @@ class _CardHeader extends StatelessWidget {
                         fontWeight: FontWeight.w800),
                   ),
                 ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    _TypeChip(order.orderType),
-                    if (order.tableNumber != null) ...[
-                      const SizedBox(width: 6),
-                      Text(
-                        tableLabel(order.tableNumber!),
-                        style: TextStyle(
-                            color: colors.textSecondary, fontSize: 12),
-                      ),
-                    ],
-                    if (order.sourceLabel != null) ...[
-                      const SizedBox(width: 6),
-                      Text(
-                        order.sourceLabel!,
-                        style: TextStyle(
-                            color: colors.primary, fontSize: 11),
-                      ),
-                    ],
-                    // How big this ticket is, said on the ticket.
-                    //
-                    // The lines scroll inside the card, and nothing announced
-                    // that there were more below the fold. On a forty-line
-                    // order a cook reads eight and bumps — the card looks
-                    // complete, because a card with eight lines looks exactly
-                    // like a card with eight lines.
-                    if (_lineCount > 0) ...[
-                      const SizedBox(width: 6),
-                      Text(
-                        '·  ${itemCount(_lineCount)}',
-                        style: TextStyle(
-                            color: colors.textSecondary, fontSize: 12),
-                      ),
-                    ],
-                  ],
+              ),
+
+              // SPEC-097 097-A. The first kitchen ticket in this product that
+              // can actually print — see kitchen_ticket_pdf.dart for what the
+              // till's button did instead.
+              PrintTicketButton(order: order),
+
+              // Priority flag
+              _PriorityIcon(order: order, repo: repo),
+
+              const SizedBox(width: 8),
+
+              // Age timer
+              // The thresholds this screen was configured with, not the
+              // widget's defaults. Until these were settings, every kitchen
+              // in the product turned amber at 8 minutes and red at 15.
+              //
+              // The deep-red tier is derived — the same step again past red —
+              // rather than being a third unconfigurable constant sitting
+              // behind two settings.
+              TimerBadge(
+                dueAt: order.dueAt,
+                urgentMins: urgentMins,
+                veryUrgentMins: veryUrgentMins,
+                criticalMins: veryUrgentMins + (veryUrgentMins - urgentMins),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              _TypeChip(order.orderType),
+              // Asked for a time that has not come. Said on the ticket
+              // because the board shows it from the moment it is rung:
+              // without this a cook has a ticket, a countdown and no
+              // reason given.
+              if (order.isScheduledAhead) ...[
+                const SizedBox(width: 6),
+                _ScheduledChip(order.scheduledFor!),
+              ],
+              if (order.sourceLabel != null) ...[
+                const SizedBox(width: 6),
+                Text(
+                  order.sourceLabel!,
+                  style: TextStyle(color: colors.primary, fontSize: 11),
                 ),
               ],
-            ),
+              // One run rather than a chip each: a chip per fact overflowed
+              // the row the moment a ticket had a table, covers, a server and
+              // a line count at once. It still ellipsises on the narrowest
+              // layout, ordered so the item count outlives the covers.
+              Expanded(
+                child: Text(
+                  _meta(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: colors.textSecondary, fontSize: 12),
+                ),
+              ),
+            ],
           ),
+        ],
+      ),
+    );
+  }
+}
 
-          // SPEC-097 097-A. The first kitchen ticket in this product that can
-          // actually print — see kitchen_ticket_pdf.dart for what the till's
-          // button did instead.
-          PrintTicketButton(order: order),
+/// The time a pre-order is wanted for, in the kitchen's own clock.
+class _ScheduledChip extends StatelessWidget {
+  const _ScheduledChip(this.scheduledFor);
+  final DateTime scheduledFor;
 
-          // Priority flag
-          _PriorityIcon(order: order, repo: repo),
-
-          const SizedBox(width: 8),
-
-          // Age timer
-          // The thresholds this screen was configured with, not the widget's
-          // defaults. Until these were settings, every kitchen in the product
-          // turned amber at 8 minutes and red at 15.
-          //
-          // The deep-red tier is derived — the same step again past red —
-          // rather than being a third unconfigurable constant sitting behind
-          // two settings.
-          TimerBadge(
-            orderTime: order.orderTime,
-            urgentMins: urgentMins,
-            veryUrgentMins: veryUrgentMins,
-            criticalMins: veryUrgentMins + (veryUrgentMins - urgentMins),
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    // `.toLocal()` is load-bearing: the converter normalises every stored
+    // date to UTC, so reading `.hour` off the raw value prints the kitchen's
+    // clock hours out.
+    final at = scheduledFor.toLocal();
+    final hh = at.hour.toString().padLeft(2, '0');
+    final mm = at.minute.toString().padLeft(2, '0');
+    final today = DateTime.now().toLocal();
+    final sameDay =
+        at.year == today.year && at.month == today.month && at.day == today.day;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: colors.info.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: colors.info.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.event_outlined, size: 11, color: colors.info),
+          const SizedBox(width: 3),
+          Text(
+            // The date appears only when it is not today, so the common case
+            // stays short and the dangerous case cannot be misread as today.
+            sameDay ? '$hh:$mm' : '${at.day}/${at.month} $hh:$mm',
+            style: TextStyle(
+                color: colors.info, fontSize: 11, fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -367,33 +418,54 @@ class _PriorityIcon extends StatelessWidget {
       default:
         color = colors.onDisabled;
     }
-    return GestureDetector(
-      onTap: () {
-        final next = order.priority == KitchenOrderPriority.normal
-            ? KitchenOrderPriority.high
-            : order.priority == KitchenOrderPriority.high
-                ? KitchenOrderPriority.urgent
-                : KitchenOrderPriority.normal;
-        repo.updatePriority(order.id, next);
-      },
-      child: Icon(Icons.flag_rounded, size: 20, color: color),
+    return Tooltip(
+      message: priorityMeaning(order.priority),
+      child: GestureDetector(
+        onTap: () {
+          final next = order.priority == KitchenOrderPriority.normal
+              ? KitchenOrderPriority.high
+              : order.priority == KitchenOrderPriority.high
+                  ? KitchenOrderPriority.urgent
+                  : KitchenOrderPriority.normal;
+          repo.updatePriority(order.id, next);
+        },
+        child: Icon(Icons.flag_rounded, size: 20, color: color),
+      ),
     );
   }
 }
 
 // ── Items body ─────────────────────────────────────────────────────────────────
 
+/// The heading a course is drawn under, shared so the card and the ticket
+/// sheet name a course the same way.
+String courseName(int n) {
+  switch (n) {
+    case 1:
+      return 'COURSE 1 — APPETISER';
+    case 2:
+      return 'COURSE 2 — MAIN';
+    case 3:
+      return 'COURSE 3 — DESSERT';
+    default:
+      return 'COURSE $n';
+  }
+}
+
 class _ItemsBody extends StatelessWidget {
   const _ItemsBody({
     required this.order,
     required this.repo,
-    this.maxLines,
+    required this.fit,
     this.lineHeight = 42,
     this.routingCategoryIds = const [],
     this.isExpo = false,
   });
 
-  final int? maxLines;
+  /// What the board's arithmetic says this card may draw. Decided once, on
+  /// the card, so the footer's "+N more" and the lines above it can never
+  /// quote different numbers.
+  final TicketFit fit;
   final double lineHeight;
   final KitchenOrder order;
   // Typed, not `dynamic`: the analyzer cannot see a missing member on a
@@ -407,25 +479,20 @@ class _ItemsBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final kitchen = context.kitchen;
-    final byCourse =
-        order.coursesFor(routingCategoryIds, isExpo: isExpo);
-    if (byCourse.length <= 1) {
-      // No course grouping
-      final all = order.linesFor(routingCategoryIds, isExpo: isExpo);
-      final budget = maxLines;
-      // One line of the budget is spent on the "+N more" row itself, or it
-      // would push the card past the slot it was given.
-      final shown = budget != null && all.length > budget
-          ? all.take(budget).toList()
-          : all;
+    final byCourse = order.coursesFor(routingCategoryIds, isExpo: isExpo);
+    final courses = byCourse.keys.toList()..sort();
+
+    if (courses.length <= 1) {
+      final all = courses.isEmpty ? <KitchenOrderItem>[] : byCourse[courses.first]!;
+      final take = fit.perCourseShown[courses.isEmpty ? 1 : courses.first] ??
+          all.length;
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ...shown.map((item) => ItemTile(
+          ...all.take(take).map((item) => ItemTile(
                 item: item,
                 lineHeight: lineHeight,
-                onMarkStarted: () =>
-                    repo.markItemStarted(order.id, item.id),
+                onMarkStarted: () => repo.markItemStarted(order.id, item.id),
                 onMarkCompleted: () =>
                     repo.markItemCompleted(order.id, item.id),
                 onToggle86: () => repo.set86Item(order.id, item.id,
@@ -435,54 +502,71 @@ class _ItemsBody extends StatelessWidget {
       );
     }
 
-    // Multi-course
-    final courses = byCourse.keys.toList()..sort();
+    // Multi-course. A course the budget could not reach is dropped whole
+    // rather than headed and left empty, and its lines are in the "+N more"
+    // the footer quotes.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: courses.map((course) {
+      mainAxisSize: MainAxisSize.min,
+      children: courses
+          .where((c) => (fit.perCourseShown[c] ?? 0) > 0)
+          .map((course) {
         final items = byCourse[course]!;
+        final shown = items.take(fit.perCourseShown[course]!).toList();
+        // Read from every line of the course, not just the drawn ones: a
+        // course is fired as a whole, so a truncated card must not offer
+        // FIRE on the strength of the lines that happened to fit.
         final allHeld =
             items.every((i) => i.status == KitchenItemStatus.held);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Text(
-                  _courseName(course),
-                  style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1),
-                ),
-                const Spacer(),
-                if (allHeld)
-                  GestureDetector(
-                    onTap: () => repo.fireCourse(order.id, course),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: kitchen.statusPreparing.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                            color: kitchen.statusPreparing.withValues(alpha: 0.5)),
-                      ),
-                      child: Text(
-                        'FIRE',
-                        style: TextStyle(
-                            color: kitchen.statusPreparing,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800),
+            SizedBox(
+              // The heading is a row the board paid for, so it occupies one
+              // and no more.
+              height: lineHeight,
+              child: Row(
+                children: [
+                  Text(
+                    courseName(course),
+                    style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1),
+                  ),
+                  const Spacer(),
+                  if (allHeld)
+                    GestureDetector(
+                      onTap: () => repo.fireCourse(order.id, course),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: kitchen.statusPreparing.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                              color:
+                                  kitchen.statusPreparing.withValues(alpha: 0.5)),
+                        ),
+                        child: Text(
+                          'FIRE',
+                          style: TextStyle(
+                              color: kitchen.statusPreparing,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800),
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 4),
-            ...items.map((item) => ItemTile(
+            ...shown.map((item) => ItemTile(
                   item: item,
+                  // Was omitted, so a coursed card drew 42px lines in a slot
+                  // measured at 36 or 50.
+                  lineHeight: lineHeight,
                   onMarkStarted: allHeld
                       ? null
                       : () => repo.markItemStarted(order.id, item.id),
@@ -494,25 +578,12 @@ class _ItemsBody extends StatelessWidget {
                   onToggle86: () =>
                       repo.set86Item(order.id, item.id, is86d: !item.is86d),
                 )),
-            Divider(color: colors.border, height: 16),
           ],
         );
       }).toList(),
     );
   }
 
-  String _courseName(int n) {
-    switch (n) {
-      case 1:
-        return 'COURSE 1 — APPETISER';
-      case 2:
-        return 'COURSE 2 — MAIN';
-      case 3:
-        return 'COURSE 3 — DESSERT';
-      default:
-        return 'COURSE $n';
-    }
-  }
 }
 
 // ── Footer ─────────────────────────────────────────────────────────────────────
@@ -673,7 +744,11 @@ class _PrintTicketButtonState extends ConsumerState<PrintTicketButton> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    return InkWell(
+    return Tooltip(
+      message: _busy
+          ? 'Printing…'
+          : 'Print this ticket for the pass',
+      child: InkWell(
       onTap: _busy ? null : _print,
       borderRadius: BorderRadius.circular(6),
       child: Padding(
@@ -687,6 +762,7 @@ class _PrintTicketButtonState extends ConsumerState<PrintTicketButton> {
               )
             : Icon(Icons.print_outlined,
                 size: 18, color: colors.textSecondary),
+      ),
       ),
     );
   }

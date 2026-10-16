@@ -24,7 +24,7 @@ Future<void> _pumpBadge(
     theme: AppTheme.light(),
     home: Scaffold(
       body: TimerBadge(
-        orderTime: DateTime.now().subtract(Duration(minutes: minsAgo)),
+        dueAt: DateTime.now().subtract(Duration(minutes: minsAgo)),
         urgentMins: urgent,
         veryUrgentMins: veryUrgent,
         criticalMins: critical,

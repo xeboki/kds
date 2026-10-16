@@ -32,7 +32,16 @@ final kitchenOrdersProvider = StreamProvider<List<KitchenOrder>>((ref) {
 
 // ── Bumped / recalled orders ──────────────────────────────────────────────────
 
-final bumpedOrdersProvider = FutureProvider<List<KitchenOrder>>((ref) async {
+/// The tickets a cook can pull back, re-read every time the panel opens.
+///
+/// `autoDispose` is load-bearing. As a plain `FutureProvider` this held its
+/// first answer for the life of the app: open the recall panel once at the
+/// start of service, when nothing has been bumped, and it cached an empty
+/// list — so every later bump was unrecallable and the panel said "Nothing
+/// has been bumped yet" while the ticket sat in Firestore with its
+/// `bumped_at` set. Proven on 34: bumped DET00005, panel still empty.
+final bumpedOrdersProvider =
+    FutureProvider.autoDispose<List<KitchenOrder>>((ref) async {
   final session = ref.watch(sessionProvider);
   if (session == null) return [];
   final repo = ref.watch(kitchenRepositoryProvider);

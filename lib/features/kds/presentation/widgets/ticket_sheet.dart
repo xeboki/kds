@@ -24,7 +24,7 @@ import '../../../../core/theme/kds_theme.dart';
 import '../../domain/models/kitchen_order.dart';
 import '../providers/kitchen_providers.dart';
 import 'item_tile.dart';
-import 'order_card.dart' show itemCount, tableLabel;
+import 'order_card.dart' show courseName, itemCount, tableLabel;
 
 Future<void> showTicketSheet(
   BuildContext context, {
@@ -59,6 +59,13 @@ class _TicketSheet extends ConsumerWidget {
     final kitchen = context.kitchen;
     final repo = ref.read(kitchenRepositoryProvider);
     final lines = order.linesFor(routingCategoryIds, isExpo: isExpo);
+    // Grouped the same way the card groups it. The card drew
+    // "COURSE 1 — APPETISER" and the sheet behind it drew one flat list, so
+    // opening a coursed ticket to read the lines the card could not fit lost
+    // the course structure — on the surface with the most room for it.
+    final byCourse = order.coursesFor(routingCategoryIds, isExpo: isExpo);
+    final courses = byCourse.keys.toList()..sort();
+    final coursed = courses.length > 1;
 
     return Dialog(
       backgroundColor: colors.surface,
@@ -86,11 +93,31 @@ class _TicketSheet extends ConsumerWidget {
                           [
                             if (order.tableNumber != null)
                               tableLabel(order.tableNumber!),
+                            if (order.guestCount != null &&
+                                order.guestCount! > 0)
+                              '${order.guestCount} '
+                                  '${order.guestCount == 1 ? 'cover' : 'covers'}',
+                            if (order.serverName != null &&
+                                order.serverName!.trim().isNotEmpty)
+                              order.serverName!.trim(),
                             itemCount(lines.length),
                           ].join('  ·  '),
                           style: TextStyle(
                               fontSize: 13, color: colors.textSecondary),
                         ),
+                        // The time it is wanted for, spelled out in full on
+                        // the one surface with room for it.
+                        if (order.scheduledFor != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              'Due ${_dueLabel(order.scheduledFor!.toLocal())}',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: colors.info),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -129,9 +156,43 @@ class _TicketSheet extends ConsumerWidget {
                 shrinkWrap: true,
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                 children: [
-                  for (final item in lines)
+                  for (final course in courses) ...[
+                    if (coursed)
+                      Padding(
+                        padding: EdgeInsets.only(
+                            top: course == courses.first ? 0 : 14, bottom: 6),
+                        child: Row(
+                          children: [
+                            Text(
+                              courseName(course),
+                              style: TextStyle(
+                                  color: colors.textSecondary,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1),
+                            ),
+                            const Spacer(),
+                            if (byCourse[course]!
+                                .every((i) => i.status == KitchenItemStatus.held))
+                              TextButton(
+                                onPressed: () =>
+                                    repo.fireCourse(order.id, course),
+                                child: Text('FIRE',
+                                    style: TextStyle(
+                                        color: kitchen.statusPreparing,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800)),
+                              ),
+                          ],
+                        ),
+                      ),
+                  for (final item in byCourse[course]!) ...[
                     ItemTile(
                       item: item,
+                      // The surface with room for a labelled control. On the
+                      // board a line is one row tall and 86 stays a long
+                      // press; here it is a button a cook can see.
+                      show86Button: true,
                       onMarkStarted: () =>
                           repo.markItemStarted(order.id, item.id),
                       onMarkCompleted: () =>
@@ -139,6 +200,24 @@ class _TicketSheet extends ConsumerWidget {
                       onToggle86: () => repo.set86Item(order.id, item.id,
                           is86d: !item.is86d),
                     ),
+                    // Why it was voided. The card has one fixed-height row
+                    // per line and can only badge the void; this is the
+                    // surface with room to say what a server actually did.
+                    if (item.isVoided &&
+                        item.cancelReason != null &&
+                        item.cancelReason!.trim().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16, bottom: 6),
+                        child: Text(
+                          'Voided — ${item.cancelReason!.trim()}',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                              color: kitchen.ageRed),
+                        ),
+                      ),
+                  ],
+                  ],
                 ],
               ),
             ),
@@ -183,4 +262,15 @@ class _TicketSheet extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// A due time a cook can read at a glance: the clock alone when it is today,
+/// the date too when it is not.
+String _dueLabel(DateTime at) {
+  final hh = at.hour.toString().padLeft(2, '0');
+  final mm = at.minute.toString().padLeft(2, '0');
+  final now = DateTime.now();
+  final sameDay =
+      at.year == now.year && at.month == now.month && at.day == now.day;
+  return sameDay ? 'today $hh:$mm' : '${at.day}/${at.month} at $hh:$mm';
 }

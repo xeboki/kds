@@ -76,7 +76,23 @@ class KitchenOrder with _$KitchenOrder {
   factory KitchenOrder.fromJson(Map<String, dynamic> json) =>
       _$KitchenOrderFromJson(json);
 
-  int get waitTimeMinutes => DateTime.now().difference(orderTime).inMinutes;
+  /// When the kitchen is meant to have this ready.
+  ///
+  /// The time it was asked for if it was asked for a time, else the time it
+  /// was rung. Every timer and every wait statistic measures from here, so a
+  /// pre-order is not treated as late for the hours between being taken and
+  /// being due — before this, `scheduledFor` was read off the wire and used
+  /// nowhere, so a Saturday-night catering order rang in on Thursday went red
+  /// on the board within 20 minutes and skewed the average wait by two days.
+  DateTime get dueAt => scheduledFor ?? orderTime;
+
+  /// Asked for a time that has not come yet.
+  bool get isScheduledAhead =>
+      scheduledFor != null && scheduledFor!.isAfter(DateTime.now());
+
+  /// Minutes past due. Negative while a scheduled order is still ahead of
+  /// its time, so callers averaging it must drop those first.
+  int get waitTimeMinutes => DateTime.now().difference(dueAt).inMinutes;
 
   int? get prepTimeMinutes {
     if (startedAt == null || readyAt == null) return null;
@@ -108,7 +124,13 @@ class KitchenOrder with _$KitchenOrder {
                 screenRoutingCategoryIds: screenRoutingCategoryIds,
                 isExpo: isExpo,
               ))
-          .toList();
+          .toList()
+        // The till decides the order lines were rung in and sends it as
+        // `displayOrder`; the board ignored it and drew whatever order the
+        // array happened to hold. A stable fallback keeps lines without one
+        // in their arrival order rather than shuffling them.
+        ..sort((a, b) => (a.displayOrder ?? 1 << 30)
+            .compareTo(b.displayOrder ?? 1 << 30));
 
   /// [byCourse], narrowed the same way as [linesFor].
   Map<int, List<KitchenOrderItem>> coursesFor(
@@ -123,15 +145,14 @@ class KitchenOrder with _$KitchenOrder {
     return map;
   }
 
-  bool get isComplete =>
-      items.every((i) => i.status == KitchenItemStatus.completed ||
-          i.status == KitchenItemStatus.cancelled);
+  bool get isComplete => items
+      .every((i) => i.status == KitchenItemStatus.completed || i.isVoided);
 
   double get completionPercentage {
     if (items.isEmpty) return 0;
-    final done = items.where((i) =>
-        i.status == KitchenItemStatus.completed ||
-        i.status == KitchenItemStatus.cancelled).length;
+    final done = items
+        .where((i) => i.status == KitchenItemStatus.completed || i.isVoided)
+        .length;
     return done / items.length;
   }
 
@@ -221,6 +242,19 @@ class KitchenOrderItem with _$KitchenOrderItem {
   bool get hasCookingPreference =>
       cookingPreference != null && cookingPreference!.isNotEmpty;
   bool get isHeld => status == KitchenItemStatus.held;
+
+  /// Nobody is going to cook this.
+  ///
+  /// Two fields can mean a line is off and they were checked in different
+  /// places: the status, and `isCancelled` — the void flag the till sets when
+  /// a server voids a dish, which **nothing** checked. A voided dish was
+  /// drawn as an ordinary line, counted in the all-day, and cooked.
+  bool get isVoided =>
+      isCancelled || status == KitchenItemStatus.cancelled;
+
+  /// Off the board one way or another: voided, or 86'd because the kitchen
+  /// has run out. Neither should be counted as work to do.
+  bool get isOff => isVoided || is86d;
 }
 
 @freezed
