@@ -141,6 +141,11 @@ class AuthRepository {
         // forgets everything it was switched on for.
         'screen_role': s.role.wire,
         'routing_category_ids': s.routingCategoryIds,
+        // Persisted with the rest of the screen's configuration. Left out,
+        // they came back as the constructor defaults on every cold start and
+        // a kitchen's own thresholds quietly reverted to 8 and 15.
+        'urgent_threshold_mins': s.urgentThresholdMins,
+        'very_urgent_threshold_mins': s.veryUrgentThresholdMins,
         'subscription_plan': s.subscriptionPlan,
         'subscription_status': s.subscriptionStatus,
       };
@@ -156,6 +161,9 @@ class AuthRepository {
       staffName: m['staff_name'] as String,
       staffId: m['staff_id'] as String,
       role: KdsScreenRole.fromWire(m['screen_role'] as String?),
+      urgentThresholdMins: minutesOrDefault(m['urgent_threshold_mins'], 8),
+      veryUrgentThresholdMins:
+          minutesOrDefault(m['very_urgent_threshold_mins'], 15),
       routingCategoryIds: ((m['routing_category_ids'] as List?) ?? const [])
           .map((e) => '$e')
           .toList(),
