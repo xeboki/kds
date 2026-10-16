@@ -57,10 +57,18 @@ class OrderCard extends ConsumerWidget {
         border: Border.all(color: borderColor.withValues(alpha: 0.5), width: 1.5),
       ),
       child: Column(
+        // Sized to its content, capped by the board. `Expanded` below would
+        // demand a bounded height and throw in a column that has none.
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── Header ──────────────────────────────────────────────────────────
-          _CardHeader(order: order, repo: repo),
+          _CardHeader(
+            order: order,
+            repo: repo,
+            routingCategoryIds: routingCategoryIds,
+            isExpo: isExpo,
+          ),
 
           // ── Allergy alert ────────────────────────────────────────────────────
           if (order.allergyInfo != null && order.allergyInfo!.isNotEmpty)
@@ -87,7 +95,10 @@ class OrderCard extends ConsumerWidget {
             ),
 
           // ── Items ────────────────────────────────────────────────────────────
-          Expanded(
+          // Loose, not `Expanded`: a short ticket takes the height it needs
+          // and a long one is held to the board's cap and scrolls.
+          Flexible(
+            fit: FlexFit.loose,
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
               child: _ItemsBody(
@@ -109,13 +120,28 @@ class OrderCard extends ConsumerWidget {
 // ── Header ─────────────────────────────────────────────────────────────────────
 
 class _CardHeader extends StatelessWidget {
-  const _CardHeader({required this.order, required this.repo});
+  const _CardHeader({
+    required this.order,
+    required this.repo,
+    required this.routingCategoryIds,
+    required this.isExpo,
+  });
+
+  /// The screen's own switches, so the count reports the lines this screen is
+  /// responsible for rather than the whole order.
+  final List<String> routingCategoryIds;
+  final bool isExpo;
 
   final KitchenOrder order;
   // Typed, not `dynamic`: the analyzer cannot see a missing member on a
   // dynamic receiver, which is how a removed field became a runtime
   // NoSuchMethodError and a blank board (SPEC-097).
   final KitchenRepository repo;
+
+  /// Counted the same way the body renders them — through `linesFor` — so the
+  /// header cannot claim forty on a grill screen that is showing six.
+  int get _lineCount =>
+      order.linesFor(routingCategoryIds, isExpo: isExpo).length;
 
   @override
   Widget build(BuildContext context) {
@@ -158,6 +184,21 @@ class _CardHeader extends StatelessWidget {
                         order.sourceLabel!,
                         style: TextStyle(
                             color: colors.primary, fontSize: 11),
+                      ),
+                    ],
+                    // How big this ticket is, said on the ticket.
+                    //
+                    // The lines scroll inside the card, and nothing announced
+                    // that there were more below the fold. On a forty-line
+                    // order a cook reads eight and bumps — the card looks
+                    // complete, because a card with eight lines looks exactly
+                    // like a card with eight lines.
+                    if (_lineCount > 0) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        '·  $_lineCount items',
+                        style: TextStyle(
+                            color: colors.textSecondary, fontSize: 12),
                       ),
                     ],
                   ],

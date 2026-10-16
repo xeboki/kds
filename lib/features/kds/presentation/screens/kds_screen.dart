@@ -307,21 +307,61 @@ class _GridView extends StatelessWidget {
   final List<String> routingCategoryIds;
   final bool isExpo;
 
+  /// No ticket is taller than this.
+  ///
+  /// Without a cap one forty-line order owns a whole column and pushes every
+  /// other ticket on that column off the screen. Past the cap the card scrolls
+  /// and its header says how many lines it holds.
+  static const _maxCardHeight = 520.0;
+
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
+    // Columns of content-height cards, not a grid of identical boxes.
+    //
+    // `childAspectRatio: 0.7` gave a two-line ticket and a forty-line ticket
+    // exactly the same box: the short one was mostly empty and the long one
+    // scrolled inside a card the same size. A kitchen board is read by
+    // scanning, and half of it was whitespace.
+    //
+    // Orders go round-robin across the columns, which keeps the oldest first
+    // in both directions a cook actually reads — down a column and across the
+    // top row. Packing by height would balance the columns better and scramble
+    // the age order, which is the one thing this board must not do.
+    final columns = List.generate(colCount, (_) => <KitchenOrder>[]);
+    for (var i = 0; i < orders.length; i++) {
+      columns[i % colCount].add(orders[i]);
+    }
+
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(12),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: colCount,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 0.7,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var c = 0; c < columns.length; c++) ...[
+            if (c > 0) const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final order in columns[c])
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: ConstrainedBox(
+                        constraints:
+                            const BoxConstraints(maxHeight: _maxCardHeight),
+                        child: OrderCard(
+                          order: order,
+                          routingCategoryIds: routingCategoryIds,
+                          isExpo: isExpo,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
-      itemCount: orders.length,
-      itemBuilder: (_, i) => OrderCard(
-          order: orders[i],
-          routingCategoryIds: routingCategoryIds,
-          isExpo: isExpo),
     );
   }
 }
