@@ -147,7 +147,7 @@ class _CardHeader extends StatelessWidget {
                     if (order.tableNumber != null) ...[
                       const SizedBox(width: 6),
                       Text(
-                        'T${order.tableNumber}',
+                        tableLabel(order.tableNumber!),
                         style: TextStyle(
                             color: colors.textSecondary, fontSize: 12),
                       ),
@@ -485,4 +485,18 @@ class _PrintTicketButtonState extends ConsumerState<PrintTicketButton> {
       ),
     );
   }
+}
+
+/// How a table reads on a ticket.
+///
+/// The bare `T` prefix assumes every table is a number. On a floor whose
+/// tables are called "B10", "Walk 1" or "Terrace 4" it produced **TB10**,
+/// **TWalk 1** and **TTerrace 4** — which is what a 25-ticket service looked
+/// like the first time one was rung. Prefixed only when the name is numeric,
+/// which is the case the prefix was written for.
+String tableLabel(String tableNumber) {
+  // Trim once and use that, rather than trimming for the test and printing
+  // the original — " 7 " came out as "T 7 ".
+  final name = tableNumber.trim();
+  return RegExp(r'^\d+$').hasMatch(name) ? 'T$name' : name;
 }

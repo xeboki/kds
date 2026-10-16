@@ -463,7 +463,7 @@ class _ExpoView extends StatelessWidget {
               // Table tag
               if (entry.order.tableNumber != null)
                 Text(
-                  'T${entry.order.tableNumber}',
+                  tableLabel(entry.order.tableNumber!),
                   style: TextStyle(
                       color: colors.onDisabled, fontSize: 12),
                 ),
