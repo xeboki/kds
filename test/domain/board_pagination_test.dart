@@ -57,6 +57,7 @@ int _cost(KitchenOrder o, {int capacity = _capacity}) => costOf(o,
 
 void main() {
   _genericPackerCases();
+  _balanceCases();
   group('what a ticket costs a column', () {
     test('its lines, plus the header and bump button', () {
       expect(_cost(_order('a', 1)), 1 + chromeInLines(_size));
@@ -220,6 +221,57 @@ void _genericPackerCases() {
       expect(pages.first[0], [0, 1]);
       expect(pages.first[1], [2, 3]);
       expect(pages.first[2], [4, 5]);
+    });
+  });
+}
+
+/// Balancing a ranked list across columns.
+///
+/// The ticket board fills a column before starting the next — tickets are
+/// placed oldest first and a gap would reorder them. The all-day view is a
+/// ranked list instead, and first-fit put all seven lines in column one with
+/// three columns of whitespace beside them.
+void _balanceCases() {
+  group('balancing a ranked list', () {
+    test('every item lands exactly once', () {
+      final items = [for (var i = 0; i < 37; i++) i];
+      final pages = balanceIntoPages(items, columns: 4, perColumn: 5);
+      final placed = [for (final p in pages) for (final c in p) ...c];
+      expect(placed, items, reason: 'order or contents changed');
+    });
+
+    test('reading down then across keeps the ranking', () {
+      final pages = balanceIntoPages([0, 1, 2, 3, 4, 5, 6],
+          columns: 4, perColumn: 10);
+      expect(pages, hasLength(1));
+      expect(pages.first[0], [0, 1]);
+      expect(pages.first[1], [2, 3]);
+      expect(pages.first[2], [4, 5]);
+      expect(pages.first[3], [6]);
+    });
+
+    test('seven over four columns is 2/2/2/1, not 7/0/0/0', () {
+      final page = balanceIntoPages([for (var i = 0; i < 7; i++) i],
+          columns: 4, perColumn: 10).single;
+      expect(page.map((c) => c.length), [2, 2, 2, 1]);
+    });
+
+    test('a column is never taller than it may be', () {
+      final pages = balanceIntoPages([for (var i = 0; i < 50; i++) i],
+          columns: 3, perColumn: 4);
+      for (final p in pages) {
+        for (final c in p) {
+          expect(c.length, lessThanOrEqualTo(4));
+        }
+      }
+    });
+
+    test('an empty list is one empty page, not none', () {
+      // No pages means nothing renders and no page bar — a blank screen that
+      // reads as broken rather than as a quiet kitchen.
+      final pages = balanceIntoPages(<int>[], columns: 3, perColumn: 5);
+      expect(pages, hasLength(1));
+      expect(pages.single.expand((c) => c), isEmpty);
     });
   });
 }

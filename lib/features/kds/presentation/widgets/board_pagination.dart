@@ -170,3 +170,31 @@ List<BoardPage> paginate(
           capacity: capacity,
           size: size),
     ).map(BoardPage.new).toList();
+
+/// Deal a ranked list into pages of balanced columns.
+///
+/// Each page takes as many as fit, then shares them evenly so no column is
+/// much longer than its neighbour. Reading order is preserved: down a column,
+/// then across, so the biggest number is still top-left.
+List<List<List<T>>> balanceIntoPages<T>(
+  List<T> items, {
+  required int columns,
+  required int perColumn,
+}) {
+  final pages = <List<List<T>>>[];
+  final pageSize = columns * perColumn;
+  for (var start = 0; start < items.length || pages.isEmpty; start += pageSize) {
+    final slice = items.sublist(
+        start, (start + pageSize).clamp(0, items.length));
+    final height = (slice.length / columns).ceil().clamp(1, perColumn);
+    pages.add([
+      for (var c = 0; c < columns; c++)
+        slice.sublist(
+          (c * height).clamp(0, slice.length),
+          ((c + 1) * height).clamp(0, slice.length),
+        ),
+    ]);
+    if (slice.isEmpty) break;
+  }
+  return pages;
+}

@@ -1013,7 +1013,6 @@ class _SizeRow extends StatelessWidget {
     );
   }
 }
-
 /// All day: how much of each thing is still to be made.
 ///
 /// Square's and Toast's own view, and the answer to "what should a kitchen
@@ -1050,27 +1049,32 @@ class _AllDayViewState extends ConsumerState<_AllDayView> {
         screenRoutingCategoryIds: widget.routingCategoryIds,
         isExpo: widget.isExpo);
 
-    if (lines.isEmpty) {
-      return const _EmptyBoard();
-    }
+    if (lines.isEmpty) return const _EmptyBoard();
+
+    final totalUnits = lines.fold<int>(0, (sum, l) => sum + l.quantity);
 
     return LayoutBuilder(
       builder: (context, box) {
-        const rowHeight = 52.0;
+        const rowHeight = 56.0;
         const barHeight = 52.0;
+        const headerHeight = 44.0;
         final perColumn =
-            ((box.maxHeight - barHeight - 24) / rowHeight).floor().clamp(1, 100);
+            ((box.maxHeight - barHeight - headerHeight - 20) / rowHeight)
+                .floor()
+                .clamp(1, 100);
 
-        // Paged on the same packer as everything else. Dividing by index and
-        // clamping to the last column looked fine until a kitchen had more
-        // distinct products than fitted: everything past the end piled into
-        // the last column and fell off the bottom of a view that does not
-        // scroll — items lost, silently.
-        final pages = packColumns<AllDayLine>(
+        // Spread evenly across the columns, not packed into the first.
+        //
+        // The ticket board fills a column before starting the next, which is
+        // right there: tickets are placed oldest first and a gap would
+        // reorder them. This is a ranked list, and first-fit put all seven
+        // lines in column one with three columns of whitespace beside them.
+        // Balancing keeps the reading order — down a column, then across —
+        // and uses the screen.
+        final pages = balanceIntoPages(
           lines,
           columns: widget.colCount,
-          capacity: perColumn,
-          cost: (_) => 1,
+          perColumn: perColumn,
         );
         final page = _page.clamp(0, pages.length - 1);
         if (page != _page) {
@@ -1078,69 +1082,54 @@ class _AllDayViewState extends ConsumerState<_AllDayView> {
             if (mounted) setState(() => _page = page);
           });
         }
-        final columns = pages[page];
 
         return Column(children: [
+          // What this view is and how much work it stands for. Without it the
+          // screen is a column of numbers with nothing saying what they are.
+          SizedBox(
+            height: headerHeight,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              child: Row(
+                children: [
+                  Text('ALL DAY',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                          color: colors.textSecondary)),
+                  const SizedBox(width: 12),
+                  Text(
+                    '$totalUnits to make  ·  ${lines.length} '
+                    '${lines.length == 1 ? 'line' : 'lines'}',
+                    style:
+                        TextStyle(fontSize: 13, color: colors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          ),
           Expanded(
             child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var c = 0; c < widget.colCount; c++) ...[
-                if (c > 0) const SizedBox(width: kCardGapPx),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      for (final line in columns[c])
-                        SizedBox(
-                          height: rowHeight,
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 52,
-                                child: Text(
-                                  '${line.quantity}',
-                                  textAlign: TextAlign.right,
-                                  style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w800,
-                                      color: colors.primary),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  line.productName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: colors.textPrimary),
-                                ),
-                              ),
-                              // Twelve on one party's order is a different job
-                              // from twelve across twelve tables.
-                              Text(
-                                line.ticketCount == 1
-                                    ? '1 ticket'
-                                    : '${line.ticketCount} tickets',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: colors.textSecondary),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var c = 0; c < widget.colCount; c++) ...[
+                    if (c > 0) const SizedBox(width: kCardGapPx),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (final line in pages[page][c])
+                            _AllDayRow(line: line, rowHeight: rowHeight),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
           SizedBox(
             height: barHeight,
@@ -1154,6 +1143,85 @@ class _AllDayViewState extends ConsumerState<_AllDayView> {
           ),
         ]);
       },
+    );
+  }
+}
+
+
+/// One product and how many are outstanding.
+///
+/// The quantity is a block, not a number beside a word. This view is read
+/// from across a kitchen by somebody deciding how many pans to put on, and at
+/// that distance the figure is the only part of the row that carries.
+class _AllDayRow extends StatelessWidget {
+  const _AllDayRow({required this.line, required this.rowHeight});
+
+  final AllDayLine line;
+  final double rowHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Container(
+        height: rowHeight - 6,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: colors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 38,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${line.quantity}',
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: colors.primary),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                line.productName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Twelve on one party's order is a different job from twelve
+            // across twelve tables.
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainer,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                line.ticketCount == 1
+                    ? '1 ticket'
+                    : '${line.ticketCount} tickets',
+                style: TextStyle(fontSize: 11, color: colors.textSecondary),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
