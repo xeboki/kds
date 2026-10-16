@@ -21,10 +21,12 @@ import '../../domain/models/kitchen_order.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../providers/kitchen_providers.dart';
 
-Future<void> showAnalyticsPanel(BuildContext context) => showModalBottomSheet(
+Future<void> showAnalyticsPanel(BuildContext context) => showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      // A kitchen screen is wide and on a wall, and a chef glances at it. As
+      // a bottom sheet this was a 620-pixel column down the middle of a
+      // 1580-pixel display, with two thirds of the screen given to scrim and
+      // the whole picture four scrolls long.
       builder: (_) => const AnalyticsPanel(),
     );
 
@@ -38,27 +40,17 @@ class AnalyticsPanel extends ConsumerWidget {
     final bumped = ref.watch(bumpedForStatsProvider);
     final session = ref.watch(sessionProvider);
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.82,
-      minChildSize: 0.45,
-      maxChildSize: 0.95,
-      builder: (_, scrollCtrl) => Container(
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-        ),
+    return Dialog(
+      insetPadding: const EdgeInsets.all(18),
+      backgroundColor: colors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        // Wide enough to lay the whole picture out side by side, capped so it
+        // does not stretch to absurd widths on a very large display.
+        constraints: const BoxConstraints(maxWidth: 1500),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 10),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: colors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 14, 12, 10),
               child: Row(
@@ -85,7 +77,7 @@ class AnalyticsPanel extends ConsumerWidget {
                               ? 'This screen'
                               : session.isExpo
                                   ? 'Everything at the pass'
-                                  : 'This screen’s sections only',
+                                  : 'This screen\u2019s sections only',
                           style: TextStyle(
                               fontSize: 12, color: colors.textSecondary),
                         ),
@@ -101,18 +93,21 @@ class AnalyticsPanel extends ConsumerWidget {
               ),
             ),
             const Divider(height: 1),
-            Expanded(
+            Flexible(
               child: orders.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(60),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
                 error: (e, _) => Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text('Could not read the board — $e',
+                    child: Text('Could not read the board \u2014 $e',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: context.kitchen.ageRed)),
                   ),
                 ),
-                data: (active) => _Body(
+                data: (active) => AnalyticsBody(
                   stats: computeKitchenStats(
                     active: active,
                     bumped: bumped.valueOrNull ?? const [],
@@ -127,7 +122,6 @@ class AnalyticsPanel extends ConsumerWidget {
                   // A pending read is not an empty hour. Without this the
                   // throughput chart drew a flat zero and then jumped.
                   historyLoaded: bumped.hasValue,
-                  scrollCtrl: scrollCtrl,
                 ),
               ),
             ),
@@ -138,147 +132,358 @@ class AnalyticsPanel extends ConsumerWidget {
   }
 }
 
-class _Body extends StatelessWidget {
-  const _Body({
+/// The dashboard itself, without the dialog around it.
+///
+/// Public so a widget test can pump it at a given screen size — the layout
+/// rules it encodes (what fits, and what a column count does to four
+/// sections) are exactly what cannot be checked on the figures alone.
+class AnalyticsBody extends StatelessWidget {
+  const AnalyticsBody({
+    super.key,
     required this.stats,
     required this.urgentMins,
     required this.veryUrgentMins,
     required this.historyLoaded,
-    required this.scrollCtrl,
   });
 
   final KitchenStats stats;
   final int urgentMins;
   final int veryUrgentMins;
   final bool historyLoaded;
-  final ScrollController scrollCtrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final sections = <Widget>[
+      _Panel(
+        title: 'HOW FAR BEHIND',
+        subtitle: 'Open tickets, by how long they have waited',
+        child: _BandBar(
+            stats: stats,
+            urgentMins: urgentMins,
+            veryUrgentMins: veryUrgentMins),
+      ),
+      _Panel(
+        title: 'WHERE THE WORK IS',
+        subtitle: 'Lines by what has been done to them',
+        child: _StatusBreakdown(stats: stats),
+      ),
+      _Panel(
+        title: 'GOING OUT',
+        subtitle: 'Tickets away, each of the last six ten-minute stretches',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!historyLoaded)
+              const _Pending()
+            else
+              _Throughput(stats: stats),
+            const SizedBox(height: 14),
+            _ThroughputFigures(
+                stats: stats,
+                historyLoaded: historyLoaded,
+                urgentMins: urgentMins,
+                veryUrgentMins: veryUrgentMins),
+          ],
+        ),
+      ),
+      _Panel(
+        title: 'BURIED UNDER',
+        subtitle: 'Dishes still to make, most of them first',
+        child: stats.busiest.isEmpty
+            ? const _Empty(text: 'Nothing left to make.')
+            : _Busiest(stats: stats),
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Four sections, so the column count has to divide four: at three
+        // columns the dealing gave 2/1/1 and the tallest section ran off the
+        // bottom while two columns sat empty. One per column on a kitchen
+        // display, two-by-two on a laptop, stacked on anything narrow.
+        final columns = constraints.maxWidth >= 1320
+            ? 4
+            : constraints.maxWidth >= 720
+                ? 2
+                : 1;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // The verdict and the figures stay full width at the top: they
+              // are what a chef reads first and they must not be buried in a
+              // column with everything else.
+              _Verdict(stats: stats, veryUrgentMins: veryUrgentMins),
+              const SizedBox(height: 14),
+              _KeyFigures(
+                  stats: stats,
+                  urgentMins: urgentMins,
+                  veryUrgentMins: veryUrgentMins),
+              const SizedBox(height: 18),
+              _Columns(columns: columns, children: sections),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Lays the sections out in [columns], filling across then down.
+class _Columns extends StatelessWidget {
+  const _Columns({required this.columns, required this.children});
+
+  final int columns;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    if (columns == 1) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final child in children) ...[
+            child,
+            const SizedBox(height: 14),
+          ],
+        ],
+      );
+    }
+
+    // Filled down a column and then across, so the order they are read in
+    // matches the order they are written in.
+    final perColumn = (children.length + columns - 1) ~/ columns;
+    final buckets = [
+      for (var c = 0; c < columns; c++)
+        children.skip(c * perColumn).take(perColumn).toList(),
+    ];
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var c = 0; c < columns; c++) ...[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final child in buckets[c]) ...[
+                  child,
+                  const SizedBox(height: 14),
+                ],
+              ],
+            ),
+          ),
+          if (c < columns - 1) const SizedBox(width: 14),
+        ],
+      ],
+    );
+  }
+}
+
+/// One bordered section of the dashboard.
+class _Panel extends StatelessWidget {
+  const _Panel({
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
+
+  final String title;
+  final String subtitle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
+                  color: colors.textSecondary)),
+          const SizedBox(height: 2),
+          Text(subtitle,
+              style: TextStyle(fontSize: 11, color: colors.onDisabled)),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+/// The four headline figures.
+class _KeyFigures extends StatelessWidget {
+  const _KeyFigures({
+    required this.stats,
+    required this.urgentMins,
+    required this.veryUrgentMins,
+  });
+
+  final KitchenStats stats;
+  final int urgentMins;
+  final int veryUrgentMins;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Row(
+      children: [
+        _Stat(
+          label: 'Open tickets',
+          value: '${stats.openTickets}',
+          footnote: stats.scheduledAhead > 0
+              ? '${stats.scheduledAhead} not due yet'
+              : null,
+          color: colors.primary,
+        ),
+        const SizedBox(width: 12),
+        _Stat(
+          label: 'Lines to make',
+          value: '${stats.linesToMake}',
+          footnote: stats.linesOff > 0 ? '${stats.linesOff} off' : null,
+          color: colors.primary,
+        ),
+        const SizedBox(width: 12),
+        _Stat(
+          label: 'Longest wait',
+          value: '${stats.oldestWaitMins}m',
+          color: waitColour(context, stats.oldestWaitMins,
+              urgentMins: urgentMins, veryUrgentMins: veryUrgentMins),
+        ),
+        const SizedBox(width: 12),
+        _Stat(
+          label: 'Typical wait',
+          value: '${stats.medianWaitMins}m',
+          // The median, not the mean. One forgotten ticket drags an average
+          // up and makes a calm board look like a bad one.
+          footnote: 'average ${stats.averageWaitMins}m',
+          color: waitColour(context, stats.medianWaitMins,
+              urgentMins: urgentMins, veryUrgentMins: veryUrgentMins),
+        ),
+      ],
+    );
+  }
+}
+
+/// Bumped, recalled and turnaround, under the throughput chart.
+class _ThroughputFigures extends StatelessWidget {
+  const _ThroughputFigures({
+    required this.stats,
+    required this.historyLoaded,
+    required this.urgentMins,
+    required this.veryUrgentMins,
+  });
+
+  final KitchenStats stats;
+
+  /// Until the hour has been read these figures are not zero, they are
+  /// unknown — and "0 away, last hour" during a busy service is a worse
+  /// answer than saying nothing yet.
+  final bool historyLoaded;
+  final int urgentMins;
+  final int veryUrgentMins;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final kitchen = context.kitchen;
-
-    return ListView(
-      controller: scrollCtrl,
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+    return Row(
       children: [
-        // ── The headline ──────────────────────────────────────────────────
-        _Verdict(stats: stats, veryUrgentMins: veryUrgentMins),
-        const SizedBox(height: 20),
-
-        Row(
-          children: [
-            _Stat(
-              label: 'Open tickets',
-              value: '${stats.openTickets}',
-              footnote: stats.scheduledAhead > 0
-                  ? '${stats.scheduledAhead} not due yet'
-                  : null,
-              color: colors.primary,
-            ),
-            const SizedBox(width: 10),
-            _Stat(
-              label: 'Lines to make',
-              value: '${stats.linesToMake}',
-              footnote: stats.linesOff > 0 ? '${stats.linesOff} off' : null,
-              color: colors.primary,
-            ),
-            const SizedBox(width: 10),
-            _Stat(
-              label: 'Longest wait',
-              value: '${stats.oldestWaitMins}m',
-              color: _waitColour(context, stats.oldestWaitMins),
-            ),
-            const SizedBox(width: 10),
-            _Stat(
-              label: 'Typical wait',
-              value: '${stats.medianWaitMins}m',
-              // The median, not the mean. One forgotten ticket drags an
-              // average up and makes a calm board look like a bad one.
-              footnote: 'avg ${stats.averageWaitMins}m',
-              color: _waitColour(context, stats.medianWaitMins),
-            ),
-          ],
+        _MiniFigure(
+          label: 'away, last hour',
+          value: historyLoaded ? '${stats.bumpedLastHour}' : '\u2014',
+          color: historyLoaded ? kitchen.statusReady : colors.onDisabled,
         ),
-
-        const SizedBox(height: 26),
-        _Heading('HOW FAR BEHIND', 'Every open ticket, by how long it has '
-            'waited against this screen’s own rungs'),
-        const SizedBox(height: 12),
-        _BandBar(stats: stats, urgentMins: urgentMins,
-            veryUrgentMins: veryUrgentMins),
-
-        const SizedBox(height: 26),
-        _Heading('WHERE THE WORK IS',
-            'Lines on the board, by what has been done to them'),
-        const SizedBox(height: 12),
-        _StatusBreakdown(stats: stats),
-
-        const SizedBox(height: 26),
-        _Heading('GOING OUT', 'Tickets bumped in each of the last six '
-            'ten-minute stretches'),
-        const SizedBox(height: 12),
-        if (!historyLoaded)
-          const _Pending()
-        else
-          _Throughput(stats: stats),
-
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            _Stat(
-              label: 'Bumped, last hour',
-              value: '${stats.bumpedLastHour}',
-              color: kitchen.statusReady,
-            ),
-            const SizedBox(width: 10),
-            // Deliberately beside the bump count. A recall is a mistake being
-            // undone or a plate coming back; the number means nothing on its
-            // own.
-            _Stat(
-              label: 'Recalled',
-              value: '${stats.recalledLastHour}',
-              color: stats.recalledLastHour > 0
+        // Deliberately beside the bump count. A recall is a mistake being
+        // undone or a plate coming back; the number means nothing alone.
+        _MiniFigure(
+          label: 'recalled',
+          value: historyLoaded ? '${stats.recalledLastHour}' : '\u2014',
+          color: !historyLoaded
+              ? colors.onDisabled
+              : stats.recalledLastHour > 0
                   ? kitchen.ageRed
                   : colors.textSecondary,
-            ),
-            const SizedBox(width: 10),
-            _Stat(
-              label: 'Rung to away',
-              value: stats.averageTurnaroundMins == null
-                  ? '—'
-                  : '${stats.averageTurnaroundMins}m',
-              footnote: stats.averageTurnaroundMins == null
-                  ? 'nothing out yet'
-                  : 'average',
-              color: stats.averageTurnaroundMins == null
-                  ? colors.textSecondary
-                  : _waitColour(context, stats.averageTurnaroundMins!),
-            ),
-            const SizedBox(width: 10),
-            const Spacer(),
-          ],
         ),
-
-        if (stats.busiest.isNotEmpty) ...[
-          const SizedBox(height: 26),
-          _Heading('BURIED UNDER',
-              'The dishes still to make, most of them first'),
-          const SizedBox(height: 12),
-          _Busiest(stats: stats),
-        ],
+        _MiniFigure(
+          label: stats.averageTurnaroundMins == null || !historyLoaded
+              ? 'rung to away'
+              : 'rung to away, average',
+          value: !historyLoaded || stats.averageTurnaroundMins == null
+              ? '\u2014'
+              : '${stats.averageTurnaroundMins}m',
+          color: !historyLoaded || stats.averageTurnaroundMins == null
+              ? colors.onDisabled
+              : waitColour(context, stats.averageTurnaroundMins!,
+                  urgentMins: urgentMins, veryUrgentMins: veryUrgentMins),
+        ),
       ],
     );
   }
+}
 
-  Color _waitColour(BuildContext context, int minutes) {
-    final kitchen = context.kitchen;
-    final critical = veryUrgentMins + (veryUrgentMins - urgentMins);
-    if (minutes >= critical) return kitchen.ageUrgent;
-    if (minutes >= veryUrgentMins) return kitchen.ageRed;
-    if (minutes >= urgentMins) return kitchen.ageAmber;
-    return kitchen.ageOk;
+class _MiniFigure extends StatelessWidget {
+  const _MiniFigure({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Expanded(
+      // Keyed by what it measures, so a test can ask this figure what it
+      // says rather than searching the whole panel for a digit.
+      key: ValueKey('figure-$label'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.w800, color: color)),
+          Text(label,
+              maxLines: 2,
+              style: TextStyle(fontSize: 11, color: colors.textSecondary)),
+        ],
+      ),
+    );
   }
+}
+
+/// The wait ramp, shared so every figure on the panel colours the same way.
+Color waitColour(
+  BuildContext context,
+  int minutes, {
+  required int urgentMins,
+  required int veryUrgentMins,
+}) {
+  final kitchen = context.kitchen;
+  final critical = veryUrgentMins + (veryUrgentMins - urgentMins);
+  if (minutes >= critical) return kitchen.ageUrgent;
+  if (minutes >= veryUrgentMins) return kitchen.ageRed;
+  if (minutes >= urgentMins) return kitchen.ageAmber;
+  return kitchen.ageOk;
 }
 
 /// One line saying whether the kitchen is in trouble.
@@ -652,31 +857,6 @@ class _Busiest extends StatelessWidget {
               ],
             ),
           ),
-      ],
-    );
-  }
-}
-
-class _Heading extends StatelessWidget {
-  const _Heading(this.title, this.subtitle);
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title,
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1,
-                color: colors.textSecondary)),
-        const SizedBox(height: 2),
-        Text(subtitle,
-            style: TextStyle(fontSize: 12, color: colors.onDisabled)),
       ],
     );
   }
