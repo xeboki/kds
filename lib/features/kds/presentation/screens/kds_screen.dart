@@ -11,6 +11,7 @@ import '../widgets/analytics_panel.dart';
 import '../widgets/board_pagination.dart';
 import '../widgets/order_card.dart';
 import '../widgets/recall_panel.dart';
+import '../widgets/timer_badge.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 
 class KitchenDisplayScreen extends ConsumerStatefulWidget {
@@ -782,9 +783,12 @@ class _ExpoViewState extends ConsumerState<_ExpoView> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final kitchen = context.kitchen;
     final repo = ref.read(kitchenRepositoryProvider);
+    // The same thresholds the ticket board paints with, so an order that is
+    // amber at the grill is amber at the pass.
+    final session = ref.watch(sessionProvider);
+    final urgentMins = session?.urgentThresholdMins ?? 8;
+    final veryUrgentMins = session?.veryUrgentThresholdMins ?? 15;
 
     final shown =
         widget.orders.where((o) => _linesOf(o).isNotEmpty).toList();
@@ -822,93 +826,21 @@ class _ExpoViewState extends ConsumerState<_ExpoView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (var c = 0; c < widget.colCount; c++) ...[
-                    if (c > 0) const SizedBox(width: 16),
+                    if (c > 0) const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          for (final order in pages[page][c]) ...[
-                            SizedBox(
-                              height: headingHeight,
-                              child: Row(
-                                children: [
-                                  Text('#${order.orderNumber}',
-                                      style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w800,
-                                          color: colors.textPrimary)),
-                                  if (order.tableNumber != null) ...[
-                                    const SizedBox(width: 8),
-                                    Text(tableLabel(order.tableNumber!),
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            color: colors.textSecondary)),
-                                  ],
-                                  const Spacer(),
-                                  Text(
-                                    '${order.waitTimeMinutes}m',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: colors.textSecondary),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  // The pass clears the whole order, not a
-                                  // line: that is what the expediter does.
-                                  InkWell(
-                                    onTap: () => repo.bumpOrder(order.id),
-                                    borderRadius: BorderRadius.circular(6),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(3),
-                                      child: Icon(Icons.check_circle_outline,
-                                          size: 20,
-                                          color: kitchen.statusReady),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          for (final order in pages[page][c])
+                            _ExpoOrderBlock(
+                              order: order,
+                              lines: _linesOf(order),
+                              rowHeight: rowHeight,
+                              headingHeight: headingHeight,
+                              urgentMins: urgentMins,
+                              veryUrgentMins: veryUrgentMins,
+                              onComplete: () => repo.bumpOrder(order.id),
                             ),
-                            for (final item in _linesOf(order))
-                              SizedBox(
-                                height: rowHeight,
-                                child: Row(
-                                  children: [
-                                    const SizedBox(width: 10),
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: item.status ==
-                                                KitchenItemStatus.completed
-                                            ? kitchen.statusReady
-                                            : colors.border,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        '${item.quantity}× ${item.productName}',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: item.status ==
-                                                  KitchenItemStatus.completed
-                                              ? colors.textSecondary
-                                              : colors.textPrimary,
-                                          decoration: item.status ==
-                                                  KitchenItemStatus.completed
-                                              ? TextDecoration.lineThrough
-                                              : null,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            const SizedBox(height: rowHeight / 2),
-                          ],
                         ],
                       ),
                     ),
@@ -1222,6 +1154,165 @@ class _AllDayViewState extends ConsumerState<_AllDayView> {
           ),
         ]);
       },
+    );
+  }
+}
+
+/// One order at the pass.
+///
+/// A card, not a run of rows floating in whitespace. Grouping the lines was
+/// the first half of making an order readable; the second is making the group
+/// look like one thing — the number and the age on a tinted strip, the lines
+/// under it, the whole block bounded.
+///
+/// The age uses the ticket board's own badge and the screen's own thresholds,
+/// so an order that is amber at the grill is amber at the pass. Two places
+/// painting "late" differently is how a pass and a section end up disagreeing
+/// about which table to chase.
+class _ExpoOrderBlock extends StatelessWidget {
+  const _ExpoOrderBlock({
+    required this.order,
+    required this.lines,
+    required this.rowHeight,
+    required this.headingHeight,
+    required this.urgentMins,
+    required this.veryUrgentMins,
+    required this.onComplete,
+  });
+
+  final KitchenOrder order;
+  final List<KitchenOrderItem> lines;
+  final double rowHeight;
+  final double headingHeight;
+  final int urgentMins;
+  final int veryUrgentMins;
+  final VoidCallback onComplete;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final kitchen = context.kitchen;
+    final allDone =
+        lines.every((i) => i.status == KitchenItemStatus.completed);
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: rowHeight / 2),
+      child: Container(
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            // A finished order stands out at the pass, because that is the
+            // one you pick up next.
+            color: allDone
+                ? kitchen.statusReady.withValues(alpha: 0.55)
+                : colors.border,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              height: headingHeight,
+              padding: const EdgeInsets.fromLTRB(10, 0, 6, 0),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainer,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(9)),
+              ),
+              child: Row(
+                children: [
+                  Text('#${order.orderNumber}',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: colors.textPrimary)),
+                  if (order.tableNumber != null) ...[
+                    const SizedBox(width: 8),
+                    Text(tableLabel(order.tableNumber!),
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: colors.textSecondary)),
+                  ],
+                  const Spacer(),
+                  TimerBadge(
+                    orderTime: order.orderTime,
+                    urgentMins: urgentMins,
+                    veryUrgentMins: veryUrgentMins,
+                    criticalMins: veryUrgentMins + (veryUrgentMins - urgentMins),
+                  ),
+                  const SizedBox(width: 6),
+                  // The expediter's action is the whole order, not a line.
+                  InkWell(
+                    onTap: onComplete,
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(Icons.check_circle,
+                          size: 22,
+                          color: allDone
+                              ? kitchen.statusReady
+                              : colors.textSecondary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 4, 10, 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final item in lines)
+                    SizedBox(
+                      height: rowHeight,
+                      child: Row(
+                        children: [
+                          // Quantity as a figure, the way the all-day view
+                          // reads: it is the number a hand reaches for.
+                          SizedBox(
+                            width: 24,
+                            child: Text(
+                              '${item.quantity}',
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: item.status ==
+                                          KitchenItemStatus.completed
+                                      ? colors.textSecondary
+                                      : colors.primary),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              item.productName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color:
+                                    item.status == KitchenItemStatus.completed
+                                        ? colors.textSecondary
+                                        : colors.textPrimary,
+                                decoration:
+                                    item.status == KitchenItemStatus.completed
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
