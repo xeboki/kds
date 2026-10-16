@@ -45,7 +45,12 @@ const _kColCount = 'kds_column_count';
 const _kTicketSize = 'kds_ticket_size';
 const _kViewMode = 'kds_view_mode';
 
-enum KdsViewMode { grid, tableView, expoView }
+/// How the board is read.
+///
+/// `allDay` is Square's and Toast's own fourth view: not the tickets, but how
+/// much of each thing is still to be made across all of them. It is the view a
+/// cook batches from.
+enum KdsViewMode { grid, tableView, expoView, allDay }
 
 final columnCountProvider = StateNotifierProvider<ColumnCountNotifier, int>(
   (ref) => ColumnCountNotifier(),

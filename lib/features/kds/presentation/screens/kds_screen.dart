@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/kds_theme.dart';
+import '../../domain/all_day.dart';
 import '../../domain/models/kitchen_order.dart';
 import '../../../auth/domain/models/kds_session.dart';
 import '../providers/kitchen_providers.dart';
@@ -118,6 +119,13 @@ class _KitchenDisplayScreenState
                   // No station: the expediter assembles the whole order and
                   // has to see every line, whichever station is making it.
                   return _ExpoView(orders: orders);
+                case KdsViewMode.allDay:
+                  return _AllDayView(
+                      orders: orders,
+                      colCount: colCount,
+                      routingCategoryIds:
+                          session?.routingCategoryIds ?? const [],
+                      isExpo: session?.isExpo ?? false);
               }
             },
           ),
@@ -211,11 +219,12 @@ class _KitchenDisplayScreenState
         IconButton(
           tooltip: 'Toggle view',
           icon: Icon(
-            viewMode == KdsViewMode.grid
-                ? Icons.grid_view_rounded
-                : viewMode == KdsViewMode.tableView
-                    ? Icons.table_restaurant
-                    : Icons.list_alt_rounded,
+            switch (viewMode) {
+              KdsViewMode.grid => Icons.grid_view_rounded,
+              KdsViewMode.tableView => Icons.table_restaurant,
+              KdsViewMode.expoView => Icons.list_alt_rounded,
+              KdsViewMode.allDay => Icons.functions,
+            },
             color: colors.textSecondary,
           ),
           onPressed: () =>
@@ -964,6 +973,150 @@ class _SizeRow extends StatelessWidget {
           }),
         ),
       ],
+    );
+  }
+}
+
+/// All day: how much of each thing is still to be made.
+///
+/// Square's and Toast's own view, and the answer to "what should a kitchen
+/// screen count". Neither headlines the number of open orders — "twenty-five
+/// in the queue" is not something a cook can act on, where "twelve flat
+/// whites" is: you pull twelve cups and make them together.
+///
+/// Laid out in the same columns as the board, and it pages rather than
+/// scrolls, for the same reason everything else here does.
+class _AllDayView extends ConsumerStatefulWidget {
+  const _AllDayView({
+    required this.orders,
+    required this.colCount,
+    this.routingCategoryIds = const [],
+    this.isExpo = false,
+  });
+
+  final List<KitchenOrder> orders;
+  final int colCount;
+  final List<String> routingCategoryIds;
+  final bool isExpo;
+
+  @override
+  ConsumerState<_AllDayView> createState() => _AllDayViewState();
+}
+
+class _AllDayViewState extends ConsumerState<_AllDayView> {
+  int _page = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final lines = allDayCounts(widget.orders,
+        screenRoutingCategoryIds: widget.routingCategoryIds,
+        isExpo: widget.isExpo);
+
+    if (lines.isEmpty) {
+      return const _EmptyBoard();
+    }
+
+    return LayoutBuilder(
+      builder: (context, box) {
+        const rowHeight = 52.0;
+        const barHeight = 52.0;
+        final perColumn =
+            ((box.maxHeight - barHeight - 24) / rowHeight).floor().clamp(1, 100);
+
+        // Paged on the same packer as everything else. Dividing by index and
+        // clamping to the last column looked fine until a kitchen had more
+        // distinct products than fitted: everything past the end piled into
+        // the last column and fell off the bottom of a view that does not
+        // scroll — items lost, silently.
+        final pages = packColumns<AllDayLine>(
+          lines,
+          columns: widget.colCount,
+          capacity: perColumn,
+          cost: (_) => 1,
+        );
+        final page = _page.clamp(0, pages.length - 1);
+        if (page != _page) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _page = page);
+          });
+        }
+        final columns = pages[page];
+
+        return Column(children: [
+          Expanded(
+            child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var c = 0; c < widget.colCount; c++) ...[
+                if (c > 0) const SizedBox(width: kCardGapPx),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final line in columns[c])
+                        SizedBox(
+                          height: rowHeight,
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 52,
+                                child: Text(
+                                  '${line.quantity}',
+                                  textAlign: TextAlign.right,
+                                  style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: colors.primary),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  line.productName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: colors.textPrimary),
+                                ),
+                              ),
+                              // Twelve on one party's order is a different job
+                              // from twelve across twelve tables.
+                              Text(
+                                line.ticketCount == 1
+                                    ? '1 ticket'
+                                    : '${line.ticketCount} tickets',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: colors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+          ),
+          SizedBox(
+            height: barHeight,
+            child: pages.length > 1
+                ? _PageBar(
+                    pages: pages.length,
+                    current: page,
+                    onChanged: (p) => setState(() => _page = p),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ]);
+      },
     );
   }
 }

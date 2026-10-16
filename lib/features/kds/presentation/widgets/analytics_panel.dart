@@ -119,9 +119,6 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
 
-    int countWhere(KitchenOrderStatus status) =>
-        active.where((o) => o.status == status).length;
-
     final waits = active.map((o) => o.waitTimeMinutes).toList();
     final avgWait =
         waits.isEmpty ? 0 : waits.reduce((a, b) => a + b) ~/ waits.length;
@@ -146,28 +143,19 @@ class _Body extends StatelessWidget {
             o.recalledAt!.isAfter(cutoff))
         .length;
 
-    final items = active.expand((o) => o.items).toList();
-    final done = items
-        .where((i) => i.status == KitchenItemStatus.completed)
-        .length;
-    final inProgress = items
-        .where((i) => i.status == KitchenItemStatus.preparing)
-        .length;
-
-    final total = active.isEmpty ? 1 : active.length;
-
     return ListView(
       controller: scrollCtrl,
       padding: const EdgeInsets.all(20),
       children: [
-        _heading(context, 'ON THIS SCREEN'),
+        _heading(context, 'WAITING'),
         const SizedBox(height: 12),
         Row(
           children: [
             _StatCard(
-                label: 'Open tickets',
-                value: '${active.length}',
-                color: colors.primary),
+              label: 'Longest wait',
+              value: '${oldest}m',
+              color: _waitColour(context, oldest),
+            ),
             const SizedBox(width: 12),
             _StatCard(
               label: 'Average wait',
@@ -175,55 +163,7 @@ class _Body extends StatelessWidget {
               color: _waitColour(context, avgWait),
             ),
             const SizedBox(width: 12),
-            _StatCard(
-              label: 'Longest wait',
-              value: '${oldest}m',
-              color: _waitColour(context, oldest),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        _heading(context, 'BY STATUS'),
-        const SizedBox(height: 12),
-        _StatusBar(
-            label: 'Pending',
-            count: countWhere(KitchenOrderStatus.pending),
-            total: total,
-            color: colors.warning),
-        const SizedBox(height: 8),
-        _StatusBar(
-            label: 'Preparing',
-            count: countWhere(KitchenOrderStatus.preparing),
-            total: total,
-            color: colors.info),
-        const SizedBox(height: 8),
-        _StatusBar(
-            label: 'Ready',
-            count: countWhere(KitchenOrderStatus.ready),
-            total: total,
-            color: colors.success),
-        const SizedBox(height: 8),
-        _StatusBar(
-            label: 'Recalled',
-            count: countWhere(KitchenOrderStatus.recalled),
-            total: total,
-            color: colors.error),
-        const SizedBox(height: 24),
-        _heading(context, 'LINES'),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            _StatCard(
-                label: 'Total',
-                value: '${items.length}',
-                color: colors.textSecondary),
-            const SizedBox(width: 12),
-            _StatCard(
-                label: 'In progress',
-                value: '$inProgress',
-                color: colors.info),
-            const SizedBox(width: 12),
-            _StatCard(label: 'Done', value: '$done', color: colors.success),
+            const Spacer(),
           ],
         ),
         const SizedBox(height: 24),
@@ -313,52 +253,3 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _StatusBar extends StatelessWidget {
-  const _StatusBar({
-    required this.label,
-    required this.count,
-    required this.total,
-    required this.color,
-  });
-
-  final String label;
-  final int count;
-  final int total;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    return Row(
-      children: [
-        SizedBox(
-          width: 80,
-          child: Text(label,
-              style: TextStyle(fontSize: 13, color: colors.textPrimary)),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: total == 0 ? 0 : count / total,
-              minHeight: 10,
-              backgroundColor: colors.border,
-              valueColor: AlwaysStoppedAnimation(color),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 28,
-          child: Text('$count',
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: color)),
-        ),
-      ],
-    );
-  }
-}
