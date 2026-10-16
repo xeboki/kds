@@ -42,6 +42,7 @@ final bumpedOrdersProvider = FutureProvider<List<KitchenOrder>>((ref) async {
 // ── Display preferences (persisted) ──────────────────────────────────────────
 
 const _kColCount = 'kds_column_count';
+const _kTicketSize = 'kds_ticket_size';
 const _kViewMode = 'kds_view_mode';
 
 enum KdsViewMode { grid, tableView, expoView }
@@ -64,6 +65,33 @@ class ColumnCountNotifier extends StateNotifier<int> {
     state = count;
     final p = await SharedPreferences.getInstance();
     await p.setInt(_kColCount, count);
+  }
+}
+
+/// How big a ticket's text is: 0 small, 1 medium, 2 large.
+///
+/// Not "rows". How many tickets fit in a column is the screen's business, not
+/// a number somebody types — a board holds what it holds. What a kitchen
+/// genuinely wants to choose is how big the writing is, which then decides how
+/// much fits. Toast offers the same control as Small / Medium / Large.
+final ticketSizeProvider = StateNotifierProvider<TicketSizeNotifier, int>(
+  (ref) => TicketSizeNotifier(),
+);
+
+class TicketSizeNotifier extends StateNotifier<int> {
+  TicketSizeNotifier() : super(1) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final p = await SharedPreferences.getInstance();
+    state = (p.getInt(_kTicketSize) ?? 1).clamp(0, 2);
+  }
+
+  Future<void> set(int size) async {
+    state = size.clamp(0, 2);
+    final p = await SharedPreferences.getInstance();
+    await p.setInt(_kTicketSize, state);
   }
 }
 

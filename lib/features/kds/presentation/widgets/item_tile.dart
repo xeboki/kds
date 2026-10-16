@@ -5,6 +5,7 @@ import '../../domain/models/kitchen_order.dart';
 /// Single order-item row inside an order card.
 class ItemTile extends StatelessWidget {
   const ItemTile({
+    this.lineHeight = 42,
     super.key,
     required this.item,
     this.onMarkStarted,
@@ -23,6 +24,15 @@ class ItemTile extends StatelessWidget {
   /// on the repository with no caller. A long press, as on the till, because
   /// it is destructive enough that a brush of a sleeve should not do it.
   final VoidCallback? onToggle86;
+
+  /// Exactly how tall this line is.
+  ///
+  /// Given, not arrived at. The board budgets a ticket in line-heights and
+  /// then draws it; while the tile's height was whatever padding and text
+  /// happened to add up to, the two disagreed and the card cropped a line
+  /// with no count to say it had. A line is now the height the board paid
+  /// for, and the type scales with it.
+  final double lineHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -47,13 +57,21 @@ class ItemTile extends StatelessWidget {
         statusColor = kitchen.statusBumped;
     }
 
+    // Type scales with the row, so "Small" is smaller writing rather than the
+    // same writing in a shorter box.
+    final scale = lineHeight / 42.0;
     return GestureDetector(
       onLongPress: onToggle86,
       child: Opacity(
       opacity: is86d ? 0.5 : (isDone ? 0.45 : 1.0),
       child: Container(
+        // The gap between rows comes out of the line, not on top of it, so a
+        // row's footprint is exactly the height the board budgeted. Added on
+        // top it was four pixels a line — invisible on one, a cropped line by
+        // the sixth.
+        height: lineHeight - 4,
         margin: const EdgeInsets.only(bottom: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7 * scale),
         decoration: BoxDecoration(
           color: item.isNewlyAdded
               ? kitchen.statusReady.withValues(alpha: 0.08)
@@ -87,9 +105,15 @@ class ItemTile extends StatelessWidget {
                 Expanded(
                   child: Text(
                     '${item.quantity}× ${item.productName}',
+                    // One line. The row is exactly the height the board
+                    // budgeted for it, so a name that wrapped was simply cut
+                    // in half by the bump button — worse than an ellipsis,
+                    // because nothing said it had been cut.
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: is86d ? kitchen.ageRed : colors.textPrimary,
-                      fontSize: 14,
+                      fontSize: 14 * scale,
                       fontWeight: FontWeight.w600,
                       decoration: is86d || isDone
                           ? TextDecoration.lineThrough
@@ -138,7 +162,7 @@ class ItemTile extends StatelessWidget {
                             '${m.action.label} ${m.name}',
                             style: TextStyle(
                               color: colors.textSecondary,
-                              fontSize: 12,
+                              fontSize: 12 * scale,
                             ),
                           ))
                       .toList(),
@@ -153,7 +177,7 @@ class ItemTile extends StatelessWidget {
                   item.specialInstructions!,
                   style: TextStyle(
                     color: kitchen.ageAmber,
-                    fontSize: 12,
+                    fontSize: 12 * scale,
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -167,7 +191,7 @@ class ItemTile extends StatelessWidget {
                   item.cookingPreference!,
                   style: TextStyle(
                     color: colors.textSecondary,
-                    fontSize: 12,
+                    fontSize: 12 * scale,
                   ),
                 ),
               ),

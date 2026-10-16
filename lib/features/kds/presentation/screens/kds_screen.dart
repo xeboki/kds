@@ -7,6 +7,7 @@ import '../../domain/models/kitchen_order.dart';
 import '../../../auth/domain/models/kds_session.dart';
 import '../providers/kitchen_providers.dart';
 import '../widgets/analytics_panel.dart';
+import '../widgets/board_pagination.dart';
 import '../widgets/order_card.dart';
 import '../widgets/recall_panel.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -59,6 +60,7 @@ class _KitchenDisplayScreenState
     final session = ref.watch(sessionProvider);
     final ordersAsync = ref.watch(kitchenOrdersProvider);
     final colCount = ref.watch(columnCountProvider);
+    final ticketSize = ref.watch(ticketSizeProvider);
     final viewMode = ref.watch(viewModeProvider);
 
     // Detect new orders and trigger alert
@@ -81,7 +83,7 @@ class _KitchenDisplayScreenState
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: _buildAppBar(context, session, viewMode, colCount),
+      appBar: _buildAppBar(context, session, viewMode, colCount, ticketSize),
       body: Stack(
         children: [
           ordersAsync.when(
@@ -100,6 +102,7 @@ class _KitchenDisplayScreenState
                   return _GridView(
                       orders: orders,
                       colCount: colCount,
+                      ticketSize: ticketSize,
                       routingCategoryIds:
                           session?.routingCategoryIds ?? const [],
                       isExpo: session?.isExpo ?? false);
@@ -162,6 +165,7 @@ class _KitchenDisplayScreenState
     KdsSession? session,
     KdsViewMode viewMode,
     int colCount,
+    int ticketSize,
   ) {
     final colors = context.appColors;
     return AppBar(
@@ -218,9 +222,10 @@ class _KitchenDisplayScreenState
 
         // Column count picker
         IconButton(
-          tooltip: 'Columns ($colCount)',
+          tooltip: 'Board layout',
           icon: Icon(Icons.settings, color: colors.textSecondary),
-          onPressed: () => _showColumnPicker(context, colCount),
+          onPressed: () =>
+              _showLayoutPicker(context, colCount, ticketSize),
         ),
 
         // Logout
@@ -236,7 +241,12 @@ class _KitchenDisplayScreenState
     );
   }
 
-  void _showColumnPicker(BuildContext context, int current) {
+  /// Columns and rows — the page size of the board.
+  ///
+  /// Both, because together they decide how much of a service fits before the
+  /// board starts a second page, and a kitchen with a tall screen and one with
+  /// a wide one want different answers. Toast exposes the same pair.
+  void _showLayoutPicker(BuildContext context, int cols, int size) {
     final colors = context.appColors;
     showModalBottomSheet(
       context: context,
@@ -247,42 +257,29 @@ class _KitchenDisplayScreenState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Columns',
+            Text('Board layout',
                 style: TextStyle(
                     color: colors.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [2, 3, 4, 5].map((n) {
-                final selected = n == current;
-                return GestureDetector(
-                  onTap: () {
-                    ref.read(columnCountProvider.notifier).set(n);
-                    Navigator.pop(context);
-                  },
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? colors.primary
-                          : colors.surfaceContainer,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '$n',
-                      style: TextStyle(
-                          color: selected ? colors.onPrimary : colors.textSecondary,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                );
-              }).toList(),
+            const SizedBox(height: 4),
+            Text(
+              'Bigger writing fits fewer tickets before the board pages',
+              style: TextStyle(color: colors.textSecondary, fontSize: 12),
             ),
+            const SizedBox(height: 18),
+            _LayoutRow(
+              label: 'Columns',
+              values: const [2, 3, 4, 5, 6],
+              current: cols,
+              onPick: (n) => ref.read(columnCountProvider.notifier).set(n),
+            ),
+            const SizedBox(height: 16),
+            _SizeRow(
+              current: size,
+              onPick: (n) => ref.read(ticketSizeProvider.notifier).set(n),
+            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -292,74 +289,247 @@ class _KitchenDisplayScreenState
 
 // ── Grid view ──────────────────────────────────────────────────────────────────
 
-class _GridView extends StatelessWidget {
+class _GridView extends ConsumerStatefulWidget {
   const _GridView({
     required this.orders,
     required this.colCount,
+    required this.ticketSize,
     this.routingCategoryIds = const [],
     this.isExpo = false,
   });
   final List<KitchenOrder> orders;
   final int colCount;
+  final int ticketSize;
 
   /// Passed down so a card shows only the lines this screen is responsible
   /// for. SPEC-097, Square's model.
   final List<String> routingCategoryIds;
   final bool isExpo;
 
-  /// No ticket is taller than this.
-  ///
-  /// Without a cap one forty-line order owns a whole column and pushes every
-  /// other ticket on that column off the screen. Past the cap the card scrolls
-  /// and its header says how many lines it holds.
-  static const _maxCardHeight = 520.0;
+  @override
+  ConsumerState<_GridView> createState() => _GridViewState();
+}
+
+/// The board, as pages of a fixed grid — never a scroll.
+///
+/// It used to scroll twice: the page scrolled, and every ticket had its own
+/// inner scroll. Reaching the fourth line of the eleventh order meant two
+/// gestures in two nested surfaces, on a screen read from two metres away by
+/// someone holding a pan.
+///
+/// Nobody good does that. Toast's KDS shows a fixed maximum of tickets per
+/// screen and paginates, with page indicators, and lets a long ticket span
+/// several grid slots. Square's rail and tile layouts page too — and their own
+/// forums carry the cost of the alternative: a moderator recommending a layout
+/// that "will require that you scroll longer tickets", and users who cannot
+/// reach the second page of a long order at all.
+class _GridViewState extends ConsumerState<_GridView> {
+  int _page = 0;
 
   @override
   Widget build(BuildContext context) {
-    // Columns of content-height cards, not a grid of identical boxes.
-    //
-    // `childAspectRatio: 0.7` gave a two-line ticket and a forty-line ticket
-    // exactly the same box: the short one was mostly empty and the long one
-    // scrolled inside a card the same size. A kitchen board is read by
-    // scanning, and half of it was whitespace.
-    //
-    // Orders go round-robin across the columns, which keeps the oldest first
-    // in both directions a cook actually reads — down a column and across the
-    // top row. Packing by height would balance the columns better and scramble
-    // the age order, which is the one thing this board must not do.
-    final columns = List.generate(colCount, (_) => <KitchenOrder>[]);
-    for (var i = 0; i < orders.length; i++) {
-      columns[i % colCount].add(orders[i]);
-    }
+    const gap = kCardGapPx;
+    final lineHeight = kLinePx[widget.ticketSize]!;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (var c = 0; c < columns.length; c++) ...[
-            if (c > 0) const SizedBox(width: 10),
+    return LayoutBuilder(
+      builder: (context, outer) {
+        // The page bar only exists once there is more than one page, and
+        // whether there is depends on the height left after it. Reserving the
+        // space either way keeps the two from arguing: a board that gains a
+        // page, shrinks, loses the page, grows, and gains it again.
+        const barHeight = 52.0;
+        final boardHeight = outer.maxHeight - barHeight - 24;
+        final capacity = columnCapacity(boardHeight, widget.ticketSize);
+
+        // Capacity is measured, not set: the board holds what the board holds.
+        final pages = paginate(
+          widget.orders,
+          columns: widget.colCount,
+          capacity: capacity,
+          size: widget.ticketSize,
+          screenRoutingCategoryIds: widget.routingCategoryIds,
+          isExpo: widget.isExpo,
+        );
+
+        // A bump can shorten the board under you. Landing on a page that no
+        // longer exists would show an empty screen in a busy kitchen.
+        final page = _page.clamp(0, pages.length - 1);
+        if (page != _page) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _page = page);
+          });
+        }
+
+        return Column(
+          children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final order in columns[c])
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: ConstrainedBox(
-                        constraints:
-                            const BoxConstraints(maxHeight: _maxCardHeight),
-                        child: OrderCard(
-                          order: order,
-                          routingCategoryIds: routingCategoryIds,
-                          isExpo: isExpo,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var c = 0; c < widget.colCount; c++) ...[
+                      if (c > 0) const SizedBox(width: gap),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (final order in pages[page].columns[c])
+                              _Slot(
+                                order: order,
+                                lineHeight: lineHeight,
+                                gap: gap,
+                                capacity: capacity,
+                                size: widget.ticketSize,
+                                routingCategoryIds: widget.routingCategoryIds,
+                                isExpo: widget.isExpo,
+                              ),
+                          ],
                         ),
                       ),
-                    ),
-                ],
+                    ],
+                  ],
+                ),
               ),
             ),
+            SizedBox(
+              height: barHeight,
+              child: pages.length > 1
+                  ? _PageBar(
+                      pages: pages.length,
+                      current: page,
+                      onChanged: (p) => setState(() => _page = p),
+                    )
+                  : const SizedBox.shrink(),
+            ),
           ],
+        );
+      },
+    );
+  }
+}
+
+/// One ticket, in the slots it was allotted.
+class _Slot extends StatelessWidget {
+  const _Slot({
+    required this.order,
+    required this.lineHeight,
+    required this.gap,
+    required this.capacity,
+    required this.size,
+    required this.routingCategoryIds,
+    required this.isExpo,
+  });
+
+  final KitchenOrder order;
+
+  /// One line of a ticket, in logical pixels, at the chosen ticket size.
+  final double lineHeight;
+  final double gap;
+  final int capacity;
+  final int size;
+  final List<String> routingCategoryIds;
+  final bool isExpo;
+
+  @override
+  Widget build(BuildContext context) {
+    final cost = costOf(order,
+        screenRoutingCategoryIds: routingCategoryIds,
+        isExpo: isExpo,
+        capacity: capacity,
+        size: size);
+    return Padding(
+      padding: EdgeInsets.only(bottom: gap),
+      child: SizedBox(
+        // The gap is taken out of the card's own share, so a column of many
+        // small tickets adds up to exactly the column rather than overflowing
+        // it by one gap per ticket.
+        height: (lineHeight * cost) - gap,
+        child: OrderCard(
+          order: order,
+          lineHeight: lineHeight,
+          // What fits in the share this ticket was given. Only an order
+          // longer than a whole column is ever cut, and it says so.
+          maxLines: cost - chromeInLines(size),
+          routingCategoryIds: routingCategoryIds,
+          isExpo: isExpo,
+        ),
+      ),
+    );
+  }
+}
+
+/// Which page of the board you are on, and how to move.
+///
+/// Tappable numbers, not just arrows: Toast's own guidance is that pagination
+/// "can be tapped to move to a specific page quickly", and in a kitchen the
+/// difference between one tap and four matters.
+class _PageBar extends StatelessWidget {
+  const _PageBar({
+    required this.pages,
+    required this.current,
+    required this.onChanged,
+  });
+
+  final int pages;
+  final int current;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    // Read here rather than passed in. It was a `dynamic` field, which is the
+    // one thing the analyzer cannot check — and how a removed member became a
+    // runtime NoSuchMethodError and a blank board once already.
+    final colors = context.appColors;
+    return Container(
+      height: 52,
+      color: colors.surfaceContainer,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            tooltip: 'Previous page',
+            icon: const Icon(Icons.chevron_left),
+            color: colors.textSecondary,
+            onPressed: current > 0 ? () => onChanged(current - 1) : null,
+          ),
+          for (var p = 0; p < pages; p++)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: InkWell(
+                onTap: () => onChanged(p),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: p == current ? colors.primary : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: p == current ? colors.primary : colors.border),
+                  ),
+                  child: Text(
+                    '${p + 1}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      // On the filled chip this must be on-primary; body text
+                      // is near-black on this blue.
+                      color:
+                          p == current ? colors.onPrimary : colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          IconButton(
+            tooltip: 'Next page',
+            icon: const Icon(Icons.chevron_right),
+            color: colors.textSecondary,
+            onPressed:
+                current < pages - 1 ? () => onChanged(current + 1) : null,
+          ),
         ],
       ),
     );
@@ -405,24 +575,43 @@ class _TableConsolidatedView extends StatelessWidget {
                     letterSpacing: 1),
               ),
             ),
-            SizedBox(
-              height: 320,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: e.value
-                    .map((o) => SizedBox(
-                          width: 260,
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 10),
-                            child: OrderCard(
-                                order: o,
-                                routingCategoryIds: routingCategoryIds,
-                                isExpo: isExpo),
-                          ),
-                        ))
-                    .toList(),
-              ),
-            ),
+            // Tall enough for this table's longest ticket, rather than a
+            // fixed 320 that cropped the sixth line of anything bigger. Capped
+            // so one large party cannot make a row taller than the screen, and
+            // anything past the cap says how much it is holding back — the
+            // same bargain the paged board makes.
+            Builder(builder: (_) {
+              const cap = 560.0;
+              final longest = e.value
+                  .map((o) =>
+                      o.linesFor(routingCategoryIds, isExpo: isExpo).length)
+                  .fold<int>(1, (a, b) => a > b ? a : b);
+              final height =
+                  (kChromePx + longest * kLinePx[1]!).clamp(220.0, cap);
+              final budget = ((height - kChromePx) / kLinePx[1]!).floor();
+              return SizedBox(
+                height: height,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: e.value
+                      .map((o) => SizedBox(
+                            // Wide enough for a product name. At 260 on a
+                            // 1600-wide board every name wrapped, and a row
+                            // that is exactly one line tall then cut it.
+                            width: 360,
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 10),
+                              child: OrderCard(
+                                  order: o,
+                                  maxLines: budget,
+                                  routingCategoryIds: routingCategoryIds,
+                                  isExpo: isExpo),
+                            ),
+                          ))
+                      .toList(),
+                ),
+              );
+            }),
             Divider(color: colors.border),
           ],
         );
@@ -535,6 +724,132 @@ class _EmptyBoard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// One row of the board-layout picker.
+class _LayoutRow extends StatelessWidget {
+  const _LayoutRow({
+    required this.label,
+    required this.values,
+    required this.current,
+    required this.onPick,
+  });
+
+  final String label;
+  final List<int> values;
+  final int current;
+  final ValueChanged<int> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        Row(
+          children: values.map((n) {
+            final selected = n == current;
+            return Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: InkWell(
+                // The sheet stays open: columns and rows are usually set
+                // together, and closing after each one means opening it twice.
+                onTap: () => onPick(n),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  width: 54,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: selected ? colors.primary : colors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: selected ? colors.primary : colors.border),
+                  ),
+                  child: Text(
+                    '$n',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: selected ? colors.onPrimary : colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+/// How big the writing on a ticket is.
+///
+/// Toast's own control, in the same three steps. It is the setting a kitchen
+/// actually has an opinion about — a board read from across a pass wants
+/// bigger type than one at arm's length — and it decides how much fits, which
+/// is why there is no separate "rows" number to contradict it.
+class _SizeRow extends StatelessWidget {
+  const _SizeRow({required this.current, required this.onPick});
+
+  final int current;
+  final ValueChanged<int> onPick;
+
+  static const _labels = ['Small', 'Medium', 'Large'];
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Ticket size',
+            style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        Row(
+          children: List.generate(_labels.length, (i) {
+            final selected = i == current;
+            return Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: InkWell(
+                onTap: () => onPick(i),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: selected ? colors.primary : colors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: selected ? colors.primary : colors.border),
+                  ),
+                  child: Text(
+                    _labels[i],
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: selected ? colors.onPrimary : colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 }

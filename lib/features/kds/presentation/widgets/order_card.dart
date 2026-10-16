@@ -16,6 +16,8 @@ import 'timer_badge.dart';
 class OrderCard extends ConsumerWidget {
   const OrderCard({
     super.key,
+    this.maxLines,
+    this.lineHeight = 42,
     required this.order,
     this.routingCategoryIds = const [],
     this.isExpo = false,
@@ -29,6 +31,45 @@ class OrderCard extends ConsumerWidget {
 
   /// An expo screen assembles the whole order and shows every line.
   final bool isExpo;
+
+  /// How many lines this card has room for, or null for all of them.
+  ///
+  /// The board gives a ticket as many vertical slots as its lines need, so
+  /// this only bites on an order longer than a whole column. Showing a subset
+  /// and saying so beats the two things it replaces: an inner scroll on a
+  /// screen read from two metres away, and a second page that — in Square's
+  /// case, per their own forums — users report being unable to reach.
+  final int? maxLines;
+
+  /// How tall one line is, so the card draws what the board budgeted.
+  final double lineHeight;
+
+  int get _totalLines =>
+      order.linesFor(routingCategoryIds, isExpo: isExpo).length;
+
+  /// Lines this card will actually draw.
+  ///
+  /// One short of the budget when anything is hidden, because the "+N more"
+  /// notice occupies a row of its own in the footer. Without that the notice
+  /// pushes the last line out of a clipped box and the count it quotes is
+  /// one too few — a number that is wrong only when it matters.
+  int? get _shownLines {
+    final budget = maxLines;
+    if (budget == null) return null;
+    return _totalLines > budget ? budget - 1 : budget;
+  }
+
+  /// Lines this card has no room for.
+  ///
+  /// Only ever non-zero for an order longer than a whole column, which the
+  /// board caps rather than letting it scroll or spill onto a page that — in
+  /// Square's case, per their own forums — users report being unable to reach.
+  int get _hiddenLines {
+    final shown = _shownLines;
+    if (shown == null) return 0;
+    final hidden = _totalLines - shown;
+    return hidden > 0 ? hidden : 0;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -98,22 +139,39 @@ class OrderCard extends ConsumerWidget {
             ),
 
           // ── Items ────────────────────────────────────────────────────────────
-          // Loose, not `Expanded`: a short ticket takes the height it needs
-          // and a long one is held to the board's cap and scrolls.
+          //
+          // No scroll view. The board sizes the slot to the lines, and the
+          // one case that does not fit — an order longer than a whole column —
+          // is truncated with a count rather than hidden behind a gesture.
           Flexible(
             fit: FlexFit.loose,
-            child: SingleChildScrollView(
+            // Clipped. The slot is sized from a line count, and a line that
+            // turns out a few pixels taller than the estimate must crop
+            // rather than paint across the bump button — which is what
+            // "+3 more" did, landing outside the card entirely.
+            child: ClipRect(
+              child: Padding(
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
               child: _ItemsBody(
                   order: order,
                   repo: repo,
+                  maxLines: _shownLines,
+                  lineHeight: lineHeight,
                   routingCategoryIds: routingCategoryIds,
                   isExpo: isExpo),
+              ),
             ),
           ),
 
           // ── Footer: special instructions + bump ──────────────────────────────
-          _CardFooter(order: order, repo: repo),
+          // The hidden-line count lives in the footer, which has a fixed
+          // height, so it is always on the card however the lines above it
+          // measure out.
+          _CardFooter(
+            order: order,
+            repo: repo,
+            hiddenLines: _hiddenLines,
+          ),
         ],
       ),
     );
@@ -310,9 +368,14 @@ class _ItemsBody extends StatelessWidget {
   const _ItemsBody({
     required this.order,
     required this.repo,
+    this.maxLines,
+    this.lineHeight = 42,
     this.routingCategoryIds = const [],
     this.isExpo = false,
   });
+
+  final int? maxLines;
+  final double lineHeight;
   final KitchenOrder order;
   // Typed, not `dynamic`: the analyzer cannot see a missing member on a
   // dynamic receiver, which is how a removed field became a runtime
@@ -329,19 +392,27 @@ class _ItemsBody extends StatelessWidget {
         order.coursesFor(routingCategoryIds, isExpo: isExpo);
     if (byCourse.length <= 1) {
       // No course grouping
+      final all = order.linesFor(routingCategoryIds, isExpo: isExpo);
+      final budget = maxLines;
+      // One line of the budget is spent on the "+N more" row itself, or it
+      // would push the card past the slot it was given.
+      final shown = budget != null && all.length > budget
+          ? all.take(budget).toList()
+          : all;
       return Column(
-        children: order
-            .linesFor(routingCategoryIds, isExpo: isExpo)
-            .map((item) => ItemTile(
-                  item: item,
-                  onMarkStarted: () =>
-                      repo.markItemStarted(order.id, item.id),
-                  onMarkCompleted: () =>
-                      repo.markItemCompleted(order.id, item.id),
-                  onToggle86: () => repo.set86Item(order.id, item.id,
-                      is86d: !item.is86d),
-                ))
-            .toList(),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ...shown.map((item) => ItemTile(
+                item: item,
+                lineHeight: lineHeight,
+                onMarkStarted: () =>
+                    repo.markItemStarted(order.id, item.id),
+                onMarkCompleted: () =>
+                    repo.markItemCompleted(order.id, item.id),
+                onToggle86: () => repo.set86Item(order.id, item.id,
+                    is86d: !item.is86d),
+              )),
+        ],
       );
     }
 
@@ -428,7 +499,16 @@ class _ItemsBody extends StatelessWidget {
 // ── Footer ─────────────────────────────────────────────────────────────────────
 
 class _CardFooter extends StatelessWidget {
-  const _CardFooter({required this.order, required this.repo});
+  const _CardFooter({
+    required this.order,
+    required this.repo,
+    this.hiddenLines = 0,
+  });
+
+  /// Lines the card had no room for, said above the bump button so nobody
+  /// clears a ticket they have only half read.
+  final int hiddenLines;
+
   final KitchenOrder order;
   // Typed, not `dynamic`: the analyzer cannot see a missing member on a
   // dynamic receiver, which is how a removed field became a runtime
@@ -454,6 +534,21 @@ class _CardFooter extends StatelessWidget {
                     color: kitchen.ageAmber,
                     fontSize: 12,
                     fontStyle: FontStyle.italic),
+              ),
+            ),
+
+          // Said right above the bump button, because that is the button
+          // somebody is about to press on a ticket they have only half read.
+          if (hiddenLines > 0)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                '+$hiddenLines more — open on the pass',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: kitchen.ageAmber,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700),
               ),
             ),
 
