@@ -35,6 +35,7 @@ class OrderCard extends ConsumerWidget {
     final kitchen = context.kitchen;
     final colors = context.appColors;
     final repo = ref.read(kitchenRepositoryProvider);
+    final session = ref.watch(sessionProvider);
 
     Color borderColor;
     switch (order.status) {
@@ -68,6 +69,8 @@ class OrderCard extends ConsumerWidget {
             repo: repo,
             routingCategoryIds: routingCategoryIds,
             isExpo: isExpo,
+            urgentMins: session?.urgentThresholdMins ?? 8,
+            veryUrgentMins: session?.veryUrgentThresholdMins ?? 15,
           ),
 
           // ── Allergy alert ────────────────────────────────────────────────────
@@ -125,7 +128,14 @@ class _CardHeader extends StatelessWidget {
     required this.repo,
     required this.routingCategoryIds,
     required this.isExpo,
+    required this.urgentMins,
+    required this.veryUrgentMins,
   });
+
+  /// When this screen's tickets turn amber and red, from its own back-office
+  /// configuration. Passed down rather than read here, the way `repo` is.
+  final int urgentMins;
+  final int veryUrgentMins;
 
   /// The screen's own switches, so the count reports the lines this screen is
   /// responsible for rather than the whole order.
@@ -218,7 +228,19 @@ class _CardHeader extends StatelessWidget {
           const SizedBox(width: 8),
 
           // Age timer
-          TimerBadge(orderTime: order.orderTime),
+          // The thresholds this screen was configured with, not the widget's
+          // defaults. Until these were settings, every kitchen in the product
+          // turned amber at 8 minutes and red at 15.
+          //
+          // The deep-red tier is derived — the same step again past red —
+          // rather than being a third unconfigurable constant sitting behind
+          // two settings.
+          TimerBadge(
+            orderTime: order.orderTime,
+            urgentMins: urgentMins,
+            veryUrgentMins: veryUrgentMins,
+            criticalMins: veryUrgentMins + (veryUrgentMins - urgentMins),
+          ),
         ],
       ),
     );

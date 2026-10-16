@@ -96,6 +96,9 @@ class AuthRepository {
         routingCategoryIds: ((config['routing_category_ids'] as List?) ?? const [])
             .map((e) => '$e')
             .toList(),
+        urgentThresholdMins: minutesOrDefault(config['urgent_threshold_mins'], 8),
+        veryUrgentThresholdMins:
+            minutesOrDefault(config['very_urgent_threshold_mins'], 15),
       );
     } catch (_) {
       // A config read that fails must not stop a kitchen working. The screen
@@ -173,4 +176,15 @@ class AuthRepository {
       measurementId: m['measurementId'] as String?,
     );
   }
+}
+
+/// A minute count from the screen's configuration, or the fallback.
+///
+/// Mirrors `_positive_minutes` in the API and `_minutes` in the back office.
+/// Zero would paint every ticket red the moment it lands and a negative is a
+/// colour nothing reaches — both worse than the default, and this is the last
+/// place to catch either before a cook is looking at it.
+int minutesOrDefault(dynamic raw, int fallback) {
+  final value = raw is num ? raw.toInt() : int.tryParse('${raw ?? ''}');
+  return (value != null && value > 0) ? value : fallback;
 }

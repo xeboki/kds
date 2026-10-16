@@ -24,6 +24,15 @@ class KdsSession {
   /// way Square and Toast treat it, so replacing the hardware keeps the role.
   final KdsScreenRole role;
 
+  /// When a ticket on this screen turns amber, and when it turns red.
+  ///
+  /// Set per screen in the back office. They were constants in the board —
+  /// 8 and 15 for every kitchen in the product — and they are the one number
+  /// on a kitchen screen a cook acts on. The pass and the grill watch the
+  /// same order with different patience.
+  final int urgentThresholdMins;
+  final int veryUrgentThresholdMins;
+
   bool get isExpo => role == KdsScreenRole.expo;
 
   /// Whether this screen shows a line carrying [lineCategories].
@@ -60,6 +69,8 @@ class KdsSession {
     required this.staffId,
     this.routingCategoryIds = const [],
     this.role = KdsScreenRole.prep,
+    this.urgentThresholdMins = 8,
+    this.veryUrgentThresholdMins = 15,
     this.subscriptionPlan = '',
     this.subscriptionStatus = '',
   });
@@ -98,6 +109,8 @@ class KdsSession {
     String? locationId,
     String? locationName,
     KdsScreenRole? role,
+    int? urgentThresholdMins,
+    int? veryUrgentThresholdMins,
   }) {
     return KdsSession(
       jwtToken: jwtToken,
@@ -112,6 +125,12 @@ class KdsSession {
       // constructor default, which here would silently turn every expo
       // screen into a prep screen the next time somebody picked a station.
       role: role ?? this.role,
+      // Carried explicitly for the same reason as `role` above: omitted, they
+      // fall back to the constructor defaults and a kitchen that set its own
+      // thresholds quietly returns to 8 and 15.
+      urgentThresholdMins: urgentThresholdMins ?? this.urgentThresholdMins,
+      veryUrgentThresholdMins:
+          veryUrgentThresholdMins ?? this.veryUrgentThresholdMins,
       subscriptionPlan: subscriptionPlan,
       subscriptionStatus: subscriptionStatus,
     );
