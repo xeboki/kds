@@ -283,7 +283,7 @@ class _CardHeader extends StatelessWidget {
                     if (_lineCount > 0) ...[
                       const SizedBox(width: 6),
                       Text(
-                        '·  $_lineCount items',
+                        '·  ${itemCount(_lineCount)}',
                         style: TextStyle(
                             color: colors.textSecondary, fontSize: 12),
                       ),
@@ -705,3 +705,7 @@ String tableLabel(String tableNumber) {
   final name = tableNumber.trim();
   return RegExp(r'^\d+$').hasMatch(name) ? 'T$name' : name;
 }
+
+/// "1 item", "2 items". A ticket that says "1 items" is a ticket somebody
+/// wrote and nobody read.
+String itemCount(int n) => n == 1 ? '1 item' : '$n items';

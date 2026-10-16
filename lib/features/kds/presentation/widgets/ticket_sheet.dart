@@ -24,7 +24,7 @@ import '../../../../core/theme/kds_theme.dart';
 import '../../domain/models/kitchen_order.dart';
 import '../providers/kitchen_providers.dart';
 import 'item_tile.dart';
-import 'order_card.dart' show tableLabel;
+import 'order_card.dart' show itemCount, tableLabel;
 
 Future<void> showTicketSheet(
   BuildContext context, {
@@ -86,7 +86,7 @@ class _TicketSheet extends ConsumerWidget {
                           [
                             if (order.tableNumber != null)
                               tableLabel(order.tableNumber!),
-                            '${lines.length} items',
+                            itemCount(lines.length),
                           ].join('  ·  '),
                           style: TextStyle(
                               fontSize: 13, color: colors.textSecondary),
