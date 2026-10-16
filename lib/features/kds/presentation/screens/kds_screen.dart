@@ -118,7 +118,7 @@ class _KitchenDisplayScreenState
                 case KdsViewMode.expoView:
                   // No station: the expediter assembles the whole order and
                   // has to see every line, whichever station is making it.
-                  return _ExpoView(orders: orders);
+                  return _ExpoView(orders: orders, colCount: colCount);
                 case KdsViewMode.allDay:
                   return _AllDayView(
                       orders: orders,
@@ -745,89 +745,194 @@ class _TableGroupBlock extends StatelessWidget {
 
 // ── Expo view ──────────────────────────────────────────────────────────────────
 
-class _ExpoView extends StatelessWidget {
-  const _ExpoView({required this.orders});
+/// The pass: every order, whole, as compactly as it can be read.
+///
+/// An expediter assembles an order before it leaves, so the order is the unit.
+/// This was a flat ledger of lines with the order number repeated on every row
+/// — "#STR00000" seven times down the left — which is the one thing an expo
+/// cannot use: you could not see where an order started or ended, only that a
+/// soup existed somewhere.
+///
+/// Grouped, the number is said once and the lines beneath it are the order.
+/// Denser than the ticket board because there is no card chrome, which is the
+/// reason to have this view at all: more orders in front of you at once.
+class _ExpoView extends ConsumerStatefulWidget {
+  const _ExpoView({required this.orders, required this.colCount});
+
   final List<KitchenOrder> orders;
+  final int colCount;
+
+  @override
+  ConsumerState<_ExpoView> createState() => _ExpoViewState();
+}
+
+class _ExpoViewState extends ConsumerState<_ExpoView> {
+  int _page = 0;
+
+  /// What the expediter is assembling.
+  ///
+  /// A held course is left out deliberately: it has not been fired, so it is
+  /// not part of the plate going out, and showing it would have the pass
+  /// waiting on food the kitchen has not been asked for yet.
+  List<KitchenOrderItem> _linesOf(KitchenOrder order) => order.items
+      .where((i) =>
+          i.status != KitchenItemStatus.held &&
+          i.status != KitchenItemStatus.cancelled)
+      .toList();
 
   @override
   Widget build(BuildContext context) {
-    final kitchen = context.kitchen;
     final colors = context.appColors;
-    final items = [
-      for (final o in orders)
-        for (final i in o.items)
-          if (i.status != KitchenItemStatus.held &&
-              i.status != KitchenItemStatus.cancelled)
-            (order: o, item: i),
-    ];
+    final kitchen = context.kitchen;
+    final repo = ref.read(kitchenRepositoryProvider);
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(12),
-      itemCount: items.length,
-      separatorBuilder: (_, __) =>
-          Divider(color: colors.border, height: 1),
-      itemBuilder: (_, idx) {
-        final entry = items[idx];
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            children: [
-              // Order tag
-              Container(
-                width: 80,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: BoxDecoration(
-                  color: colors.surfaceContainer,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '#${entry.order.orderNumber}',
-                  style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Item name
-              Expanded(
-                child: Text(
-                  '${entry.item.quantity}× ${entry.item.productName}',
-                  style: TextStyle(color: colors.textPrimary, fontSize: 14),
-                ),
-              ),
-              // Status dot
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: entry.item.status == KitchenItemStatus.completed
-                      ? kitchen.statusReady
-                      : entry.item.status == KitchenItemStatus.preparing
-                          ? kitchen.statusPreparing
-                          : kitchen.statusPending,
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Table tag
-              if (entry.order.tableNumber != null)
-                Text(
-                  tableLabel(entry.order.tableNumber!),
-                  style: TextStyle(
-                      color: colors.onDisabled, fontSize: 12),
-                ),
-            ],
-          ),
+    final shown =
+        widget.orders.where((o) => _linesOf(o).isNotEmpty).toList();
+
+    if (shown.isEmpty) return const _EmptyBoard();
+
+    return LayoutBuilder(
+      builder: (context, box) {
+        const rowHeight = 30.0;
+        const headingHeight = 34.0;
+        const barHeight = 52.0;
+        // A column's budget in rows, with a heading costing a little more.
+        final capacity =
+            ((box.maxHeight - barHeight - 24) / rowHeight).floor().clamp(4, 200);
+
+        final pages = packColumns<KitchenOrder>(
+          shown,
+          columns: widget.colCount,
+          capacity: capacity,
+          // Heading, its lines, and a blank row between orders.
+          cost: (o) => 2 + _linesOf(o).length,
         );
+        final page = _page.clamp(0, pages.length - 1);
+        if (page != _page) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _page = page);
+          });
+        }
+
+        return Column(children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var c = 0; c < widget.colCount; c++) ...[
+                    if (c > 0) const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (final order in pages[page][c]) ...[
+                            SizedBox(
+                              height: headingHeight,
+                              child: Row(
+                                children: [
+                                  Text('#${order.orderNumber}',
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                          color: colors.textPrimary)),
+                                  if (order.tableNumber != null) ...[
+                                    const SizedBox(width: 8),
+                                    Text(tableLabel(order.tableNumber!),
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: colors.textSecondary)),
+                                  ],
+                                  const Spacer(),
+                                  Text(
+                                    '${order.waitTimeMinutes}m',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: colors.textSecondary),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // The pass clears the whole order, not a
+                                  // line: that is what the expediter does.
+                                  InkWell(
+                                    onTap: () => repo.bumpOrder(order.id),
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(3),
+                                      child: Icon(Icons.check_circle_outline,
+                                          size: 20,
+                                          color: kitchen.statusReady),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            for (final item in _linesOf(order))
+                              SizedBox(
+                                height: rowHeight,
+                                child: Row(
+                                  children: [
+                                    const SizedBox(width: 10),
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: item.status ==
+                                                KitchenItemStatus.completed
+                                            ? kitchen.statusReady
+                                            : colors.border,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        '${item.quantity}× ${item.productName}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: item.status ==
+                                                  KitchenItemStatus.completed
+                                              ? colors.textSecondary
+                                              : colors.textPrimary,
+                                          decoration: item.status ==
+                                                  KitchenItemStatus.completed
+                                              ? TextDecoration.lineThrough
+                                              : null,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            const SizedBox(height: rowHeight / 2),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          SizedBox(
+            height: barHeight,
+            child: pages.length > 1
+                ? _PageBar(
+                    pages: pages.length,
+                    current: page,
+                    onChanged: (p) => setState(() => _page = p),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ]);
       },
     );
   }
 }
 
-// ── Empty state ────────────────────────────────────────────────────────────────
 
 class _EmptyBoard extends StatelessWidget {
   const _EmptyBoard();
