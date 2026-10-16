@@ -10,6 +10,7 @@ import '../../domain/printing/kitchen_ticket_pdf.dart';
 import '../providers/kitchen_providers.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import 'item_tile.dart';
+import 'ticket_sheet.dart';
 import 'timer_badge.dart';
 
 /// Main KDS order card. Shows order header, items, and bump controls.
@@ -171,6 +172,12 @@ class OrderCard extends ConsumerWidget {
             order: order,
             repo: repo,
             hiddenLines: _hiddenLines,
+            onOpen: () => showTicketSheet(
+              context,
+              order: order,
+              routingCategoryIds: routingCategoryIds,
+              isExpo: isExpo,
+            ),
           ),
         ],
       ),
@@ -227,12 +234,24 @@ class _CardHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '#${order.orderNumber}',
-                  style: TextStyle(
-                      color: colors.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800),
+                InkWell(
+                  // Opens the whole ticket. On a truncated one the "+N more"
+                  // line is the obvious way in; this is the way in for every
+                  // other ticket, and for anyone who reaches for the number.
+                  onTap: () => showTicketSheet(
+                    context,
+                    order: order,
+                    routingCategoryIds: routingCategoryIds,
+                    isExpo: isExpo,
+                  ),
+                  borderRadius: BorderRadius.circular(4),
+                  child: Text(
+                    '#${order.orderNumber}',
+                    style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800),
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Row(
@@ -503,7 +522,13 @@ class _CardFooter extends StatelessWidget {
     required this.order,
     required this.repo,
     this.hiddenLines = 0,
+    this.onOpen,
   });
+
+  /// Opens the whole ticket. The "+N more" line is useless without it — it
+  /// named five lines a cook had no way to read, and told them to walk to
+  /// another screen to do it.
+  final VoidCallback? onOpen;
 
   /// Lines the card had no room for, said above the bump button so nobody
   /// clears a ticket they have only half read.
@@ -542,13 +567,35 @@ class _CardFooter extends StatelessWidget {
           if (hiddenLines > 0)
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
-              child: Text(
-                '+$hiddenLines more — open on the pass',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: kitchen.ageAmber,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700),
+              child: InkWell(
+                onTap: onOpen,
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '+$hiddenLines more',
+                        style: TextStyle(
+                            color: kitchen.ageAmber,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '— tap to open',
+                        style: TextStyle(
+                            color: kitchen.ageAmber,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(Icons.open_in_full,
+                          size: 12, color: kitchen.ageAmber),
+                    ],
+                  ),
+                ),
               ),
             ),
 
