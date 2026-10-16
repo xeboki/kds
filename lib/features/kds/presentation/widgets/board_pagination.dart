@@ -97,12 +97,61 @@ class BoardPage {
   bool get isEmpty => columns.every((c) => c.isEmpty);
 }
 
-/// Pack tickets into pages of [columns] x [rows] slots.
+/// Pack units into pages of columns, oldest first.
 ///
-/// Fills a column top to bottom, then the next, then starts a page. That keeps
-/// the oldest ticket top-left and the newest last, which is the order a cook
-/// works in — and it means a ticket never moves because something behind it
-/// was bumped, only because something in front of it was.
+/// Generic over what a unit is, because the board shows the same service two
+/// ways: as tickets, and as tables with their tickets under them. Two packers
+/// would drift, and the one that drifted would be the one nobody was looking
+/// at during a service.
+///
+/// Fills a column top to bottom, then the next, then starts a page — so the
+/// oldest unit is top-left and the newest last, which is the order a cook
+/// works in. A unit never moves because something behind it was bumped, only
+/// because something in front of it was.
+List<List<List<T>>> packColumns<T>(
+  List<T> units, {
+  required int columns,
+  required int capacity,
+  required int Function(T) cost,
+}) {
+  final pages = <List<List<T>>>[];
+  var current = List.generate(columns, (_) => <T>[]);
+  var used = List.filled(columns, 0);
+
+  void startPage() {
+    pages.add(current);
+    current = List.generate(columns, (_) => <T>[]);
+    used = List.filled(columns, 0);
+  }
+
+  for (final unit in units) {
+    final need = cost(unit).clamp(1, capacity);
+
+    // First column with room, scanned from the left every time.
+    //
+    // A cursor that only moved forward looked right and packed terribly: one
+    // tall unit in column three sent everything after it to a new page, and a
+    // twenty-five ticket service spread over eight near-empty pages with two
+    // columns of whitespace on each.
+    var col = 0;
+    while (col < columns && used[col] + need > capacity) {
+      col++;
+    }
+    if (col >= columns) {
+      startPage();
+      col = 0;
+    }
+    current[col].add(unit);
+    used[col] += need;
+  }
+
+  if (current.any((c) => c.isNotEmpty) || pages.isEmpty) {
+    pages.add(current);
+  }
+  return pages;
+}
+
+/// Pack tickets into pages of [columns], each holding [capacity] lines.
 List<BoardPage> paginate(
   List<KitchenOrder> orders, {
   required int columns,
@@ -110,46 +159,14 @@ List<BoardPage> paginate(
   required int size,
   required List<String> screenRoutingCategoryIds,
   required bool isExpo,
-}) {
-  final pages = <BoardPage>[];
-  var current = List.generate(columns, (_) => <KitchenOrder>[]);
-  var used = List.filled(columns, 0);
-  var col = 0;
-
-  void startPage() {
-    pages.add(BoardPage(current));
-    current = List.generate(columns, (_) => <KitchenOrder>[]);
-    used = List.filled(columns, 0);
-    col = 0;
-  }
-
-  for (final order in orders) {
-    final need = costOf(order,
-        screenRoutingCategoryIds: screenRoutingCategoryIds,
-        isExpo: isExpo,
-        capacity: capacity,
-        size: size);
-
-    // First column with room, scanned from the left every time.
-    //
-    // A cursor that only moves forward looked right and packed terribly: one
-    // tall ticket in column three sent everything after it to a new page, and
-    // a twenty-five ticket service spread over eight near-empty pages with
-    // two columns of whitespace on each.
-    col = 0;
-    while (col < columns && used[col] + need > capacity) {
-      col++;
-    }
-    if (col >= columns) {
-      startPage();
-      // A fresh column always fits: `costOf` clamps to the capacity.
-    }
-    current[col].add(order);
-    used[col] += need;
-  }
-
-  if (current.any((c) => c.isNotEmpty) || pages.isEmpty) {
-    pages.add(BoardPage(current));
-  }
-  return pages;
-}
+}) =>
+    packColumns<KitchenOrder>(
+      orders,
+      columns: columns,
+      capacity: capacity,
+      cost: (o) => costOf(o,
+          screenRoutingCategoryIds: screenRoutingCategoryIds,
+          isExpo: isExpo,
+          capacity: capacity,
+          size: size),
+    ).map(BoardPage.new).toList();

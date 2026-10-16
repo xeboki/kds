@@ -56,6 +56,7 @@ int _cost(KitchenOrder o, {int capacity = _capacity}) => costOf(o,
     size: _size);
 
 void main() {
+  _genericPackerCases();
   group('what a ticket costs a column', () {
     test('its lines, plus the header and bump button', () {
       expect(_cost(_order('a', 1)), 1 + chromeInLines(_size));
@@ -166,6 +167,59 @@ void main() {
       final pages = _pages([for (var i = 0; i < 50; i++) _order('o$i', 1)],
           columns: 3);
       expect(pages.length, greaterThan(1));
+    });
+  });
+}
+
+/// The packer is generic because the board shows one service two ways.
+///
+/// The ticket board packs tickets; the table view packs tables, each carrying
+/// its own tickets. Two packers would drift, and the one that drifted would be
+/// the one nobody was watching during a service.
+void _genericPackerCases() {
+  group('packing arbitrary units', () {
+    test('every unit lands exactly once', () {
+      final units = [for (var i = 0; i < 40; i++) i];
+      final pages = packColumns<int>(units,
+          columns: 3, capacity: 15, cost: (u) => 1 + u % 7);
+
+      final placed = <int>[];
+      for (final page in pages) {
+        for (final column in page) {
+          placed.addAll(column);
+        }
+      }
+      expect(placed.length, units.length);
+      expect(placed.toSet().length, units.length);
+    });
+
+    test('a unit larger than a column still lands, clamped', () {
+      // A table with more tickets than fit cannot be dropped on the floor.
+      final pages = packColumns<int>([999],
+          columns: 2, capacity: 10, cost: (_) => 10000);
+      expect(pages.first.expand((c) => c), [999]);
+    });
+
+    test('no column is overfilled', () {
+      final units = [for (var i = 0; i < 30; i++) i];
+      const capacity = 12;
+      final pages = packColumns<int>(units,
+          columns: 3, capacity: capacity, cost: (u) => 1 + u % 5);
+      for (final page in pages) {
+        for (final column in page) {
+          final used =
+              column.fold<int>(0, (s, u) => s + (1 + u % 5));
+          expect(used, lessThanOrEqualTo(capacity));
+        }
+      }
+    });
+
+    test('order is preserved down a column then across', () {
+      final pages = packColumns<int>([0, 1, 2, 3, 4, 5],
+          columns: 3, capacity: 2, cost: (_) => 1);
+      expect(pages.first[0], [0, 1]);
+      expect(pages.first[1], [2, 3]);
+      expect(pages.first[2], [4, 5]);
     });
   });
 }

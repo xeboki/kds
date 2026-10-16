@@ -109,6 +109,8 @@ class _KitchenDisplayScreenState
                 case KdsViewMode.tableView:
                   return _TableConsolidatedView(
                       orders: orders,
+                      colCount: colCount,
+                      ticketSize: ticketSize,
                       routingCategoryIds:
                           session?.routingCategoryIds ?? const [],
                       isExpo: session?.isExpo ?? false);
@@ -538,13 +540,28 @@ class _PageBar extends StatelessWidget {
 
 // ── Table-consolidated view ────────────────────────────────────────────────────
 
-class _TableConsolidatedView extends StatelessWidget {
+/// The same service, grouped by table.
+///
+/// A table and its tickets travel together — that is the whole reason for this
+/// view — so a table is the unit that gets packed, not a ticket. It pages on
+/// the same packer the ticket board uses; two packers would drift, and the one
+/// that drifted would be the one nobody was watching during a service.
+///
+/// It used to be a vertical list of full-width rows: one 360px card in a
+/// 1600px row, twenty-five tables deep, scrolled. That is the fault this
+/// screen spent the morning removing from the ticket board.
+class _TableConsolidatedView extends ConsumerStatefulWidget {
   const _TableConsolidatedView({
     required this.orders,
+    required this.colCount,
+    required this.ticketSize,
     this.routingCategoryIds = const [],
     this.isExpo = false,
   });
+
   final List<KitchenOrder> orders;
+  final int colCount;
+  final int ticketSize;
 
   /// The table view is still this screen's board, grouped by table rather
   /// than by ticket.
@@ -552,73 +569,170 @@ class _TableConsolidatedView extends StatelessWidget {
   final bool isExpo;
 
   @override
+  ConsumerState<_TableConsolidatedView> createState() =>
+      _TableConsolidatedViewState();
+}
+
+/// One table and everything on it.
+class _TableGroup {
+  const _TableGroup(this.table, this.orders);
+  final String table;
+  final List<KitchenOrder> orders;
+}
+
+class _TableConsolidatedViewState
+    extends ConsumerState<_TableConsolidatedView> {
+  int _page = 0;
+
+  @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
+    const gap = kCardGapPx;
+    final lineHeight = kLinePx[widget.ticketSize]!;
+
+    // Insertion order, which is the order the board already sorted into:
+    // oldest first. Sorting by table number would put table 1 above a table 9
+    // that has been waiting twice as long.
     final byTable = <String, List<KitchenOrder>>{};
-    for (final o in orders) {
-      final key = o.tableNumber ?? 'No Table';
-      byTable.putIfAbsent(key, () => []).add(o);
+    for (final o in widget.orders) {
+      byTable.putIfAbsent(o.tableNumber ?? 'No Table', () => []).add(o);
     }
-    return ListView(
-      padding: const EdgeInsets.all(12),
-      children: byTable.entries.map((e) {
+    final groups = byTable.entries
+        .map((e) => _TableGroup(e.key, e.value))
+        .toList();
+
+    return LayoutBuilder(
+      builder: (context, outer) {
+        const barHeight = 52.0;
+        final boardHeight = outer.maxHeight - barHeight - 24;
+        final capacity = columnCapacity(boardHeight, widget.ticketSize);
+
+        int costOfGroup(_TableGroup g) =>
+            // One line for the table heading, then what its tickets cost.
+            1 +
+            g.orders.fold<int>(
+                0,
+                (sum, o) => sum +
+                    costOf(o,
+                        screenRoutingCategoryIds: widget.routingCategoryIds,
+                        isExpo: widget.isExpo,
+                        capacity: capacity,
+                        size: widget.ticketSize));
+
+        final pages = packColumns<_TableGroup>(
+          groups,
+          columns: widget.colCount,
+          capacity: capacity,
+          cost: costOfGroup,
+        );
+
+        final page = _page.clamp(0, pages.length - 1);
+        if (page != _page) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _page = page);
+          });
+        }
+
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                'Table ${e.key}',
-                style: TextStyle(
-                    color: colors.textSecondary,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var c = 0; c < widget.colCount; c++) ...[
+                      if (c > 0) const SizedBox(width: gap),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (final group in pages[page][c])
+                              _TableGroupBlock(
+                                group: group,
+                                lineHeight: lineHeight,
+                                capacity: capacity,
+                                size: widget.ticketSize,
+                                routingCategoryIds: widget.routingCategoryIds,
+                                isExpo: widget.isExpo,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
-            // Tall enough for this table's longest ticket, rather than a
-            // fixed 320 that cropped the sixth line of anything bigger. Capped
-            // so one large party cannot make a row taller than the screen, and
-            // anything past the cap says how much it is holding back — the
-            // same bargain the paged board makes.
-            Builder(builder: (_) {
-              const cap = 560.0;
-              final longest = e.value
-                  .map((o) =>
-                      o.linesFor(routingCategoryIds, isExpo: isExpo).length)
-                  .fold<int>(1, (a, b) => a > b ? a : b);
-              final height =
-                  (kChromePx + longest * kLinePx[1]!).clamp(220.0, cap);
-              final budget = ((height - kChromePx) / kLinePx[1]!).floor();
-              return SizedBox(
-                height: height,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: e.value
-                      .map((o) => SizedBox(
-                            // Wide enough for a product name. At 260 on a
-                            // 1600-wide board every name wrapped, and a row
-                            // that is exactly one line tall then cut it.
-                            width: 360,
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 10),
-                              child: OrderCard(
-                                  order: o,
-                                  maxLines: budget,
-                                  routingCategoryIds: routingCategoryIds,
-                                  isExpo: isExpo),
-                            ),
-                          ))
-                      .toList(),
-                ),
-              );
-            }),
-            Divider(color: colors.border),
+            SizedBox(
+              height: barHeight,
+              child: pages.length > 1
+                  ? _PageBar(
+                      pages: pages.length,
+                      current: page,
+                      onChanged: (p) => setState(() => _page = p),
+                    )
+                  : const SizedBox.shrink(),
+            ),
           ],
         );
-      }).toList(),
+      },
     );
   }
 }
+
+/// A table heading and the tickets standing on it.
+class _TableGroupBlock extends StatelessWidget {
+  const _TableGroupBlock({
+    required this.group,
+    required this.lineHeight,
+    required this.capacity,
+    required this.size,
+    required this.routingCategoryIds,
+    required this.isExpo,
+  });
+
+  final _TableGroup group;
+  final double lineHeight;
+  final int capacity;
+  final int size;
+  final List<String> routingCategoryIds;
+  final bool isExpo;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: lineHeight,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Table ${group.table}',
+              style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1),
+            ),
+          ),
+        ),
+        for (final order in group.orders)
+          _Slot(
+            order: order,
+            lineHeight: lineHeight,
+            gap: kCardGapPx,
+            capacity: capacity,
+            size: size,
+            routingCategoryIds: routingCategoryIds,
+            isExpo: isExpo,
+          ),
+      ],
+    );
+  }
+}
+
 
 // ── Expo view ──────────────────────────────────────────────────────────────────
 
