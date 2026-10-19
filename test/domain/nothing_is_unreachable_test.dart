@@ -72,7 +72,7 @@ void main() {
     final sheet =
         _read('lib/features/kds/presentation/widgets/ticket_sheet.dart');
     for (final action in ['markItemStarted', 'markItemCompleted', 'set86Item',
-        'bumpOrder']) {
+        'bumpForScreen']) {
       expect(sheet, contains(action), reason: '$action is not reachable here');
     }
   });

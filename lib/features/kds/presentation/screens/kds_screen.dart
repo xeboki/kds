@@ -856,7 +856,16 @@ class _ExpoViewState extends ConsumerState<_ExpoView> {
                               headingHeight: headingHeight,
                               urgentMins: urgentMins,
                               veryUrgentMins: veryUrgentMins,
-                              onComplete: () => repo.bumpOrder(order.id),
+                              // The screen's role, not the view it is in: a prep
+                              // station reading the board in expo view is
+                              // still a prep station, and must not clear a
+                              // ticket off the sections still cooking it.
+                              onComplete: () => repo.bumpForScreen(
+                                order.id,
+                                routingCategoryIds:
+                                    session?.routingCategoryIds ?? const [],
+                                isExpo: session?.isExpo ?? false,
+                              ),
                             ),
                         ],
                       ),

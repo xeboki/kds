@@ -159,6 +159,8 @@ class OrderCard extends ConsumerWidget {
             order: order,
             repo: repo,
             hiddenLines: _fit.itemsHidden,
+            routingCategoryIds: routingCategoryIds,
+            isExpo: isExpo,
             onOpen: () => showTicketSheet(
               context,
               order: order,
@@ -594,6 +596,8 @@ class _CardFooter extends StatelessWidget {
     required this.repo,
     this.hiddenLines = 0,
     this.onOpen,
+    required this.routingCategoryIds,
+    required this.isExpo,
   });
 
   /// Opens the whole ticket. The "+N more" line is useless without it — it
@@ -610,6 +614,10 @@ class _CardFooter extends StatelessWidget {
   // dynamic receiver, which is how a removed field became a runtime
   // NoSuchMethodError and a blank board (SPEC-097).
   final KitchenRepository repo;
+
+  /// The screen's own scope, so its bump completes its own lines.
+  final List<String> routingCategoryIds;
+  final bool isExpo;
 
   @override
   Widget build(BuildContext context) {
@@ -674,7 +682,11 @@ class _CardFooter extends StatelessWidget {
           SizedBox(
             height: 38,
             child: ElevatedButton.icon(
-              onPressed: () => repo.bumpOrder(order.id),
+              onPressed: () => repo.bumpForScreen(
+                order.id,
+                routingCategoryIds: routingCategoryIds,
+                isExpo: isExpo,
+              ),
               icon: const Icon(Icons.check_rounded, size: 16),
               label: const Text('BUMP',
                   style:

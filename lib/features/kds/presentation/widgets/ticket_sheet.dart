@@ -241,7 +241,11 @@ class _TicketSheet extends ConsumerWidget {
                   // to read the end of it should not have to close this and
                   // find the card again to clear it.
                   onPressed: () {
-                    repo.bumpOrder(order.id);
+                    repo.bumpForScreen(
+                      order.id,
+                      routingCategoryIds: routingCategoryIds,
+                      isExpo: isExpo,
+                    );
                     Navigator.pop(context);
                   },
                   icon: const Icon(Icons.check_rounded, size: 18),

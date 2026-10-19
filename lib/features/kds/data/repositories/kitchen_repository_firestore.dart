@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/services/firebase_init_service.dart';
+import '../../domain/bump.dart';
 import '../../domain/models/kitchen_order.dart';
-import '../../domain/models/screen_role.dart';
 import '../../domain/repositories/kitchen_repository.dart';
 
 class KitchenRepositoryFirestore implements KitchenRepository {
@@ -45,12 +45,10 @@ class KitchenRepositoryFirestore implements KitchenRepository {
       // filter and the line filter cannot disagree — a board that admits a
       // ticket and then renders none of its lines shows an empty card.
       if (!isExpo) {
+        // The rule lives in the domain so the query, the board and the tests
+        // cannot answer it three slightly different ways.
         orders = orders
-            .where((o) => o.items.any((i) => screenShowsLine(
-                  lineRoutingCategoryIds: i.routingCategoryIds,
-                  screenRoutingCategoryIds: routingCategoryIds,
-                  isExpo: false,
-                )))
+            .where((o) => prepScreenShowsOrder(o, routingCategoryIds))
             .toList();
       }
       if (status != null) {
@@ -111,9 +109,39 @@ class KitchenRepositoryFirestore implements KitchenRepository {
     await _orders.doc(orderId).update(data);
   }
 
-  @override
-  Future<void> bumpOrder(String orderId) =>
+  /// Clear the whole ticket. Private: reached only through
+  /// [bumpForScreen] on an expo screen, or when the last section finishes.
+  Future<void> _bumpWholeOrder(String orderId) =>
       updateOrderStatus(orderId, KitchenOrderStatus.bumped);
+
+  @override
+  Future<void> bumpForScreen(
+    String orderId, {
+    required List<String> routingCategoryIds,
+    required bool isExpo,
+  }) async {
+    // The pass is the authority that an order has left the kitchen.
+    if (isExpo) return _bumpWholeOrder(orderId);
+
+    final doc = await _orders.doc(orderId).get();
+    if (!doc.exists) return;
+    final order = KitchenOrder.fromJson({...doc.data()!, 'id': doc.id});
+
+    final outcome = bumpOutcomeFor(
+      order: order,
+      routingCategoryIds: routingCategoryIds,
+      isExpo: false,
+    );
+
+    final update = <String, dynamic>{
+      'items': outcome.items.map((i) => i.toJson()).toList(),
+    };
+    if (outcome.clearsTicket) {
+      update['status'] = KitchenOrderStatus.bumped.name;
+      update['bumped_at'] = FieldValue.serverTimestamp();
+    }
+    await _orders.doc(orderId).update(update);
+  }
 
   @override
   Future<void> recallOrder(String orderId) =>
@@ -146,9 +174,11 @@ class KitchenRepositoryFirestore implements KitchenRepository {
       );
     }).toList();
 
-    final allDone = updatedItems.every((i) =>
-        i.status == KitchenItemStatus.completed ||
-        i.status == KitchenItemStatus.cancelled);
+    // `isVoided`, not the cancelled status alone: a line the till voided
+    // carries `is_cancelled` with its status untouched, and reading only the
+    // status left a finished ticket counted as still having work on it.
+    final allDone = updatedItems.every(
+        (i) => i.status == KitchenItemStatus.completed || i.isVoided);
 
     final update = <String, dynamic>{
       'items': updatedItems.map((i) => i.toJson()).toList(),
